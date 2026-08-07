@@ -8,10 +8,28 @@ export class UsersService {
   async findByUsername(username: string) {
     const user = await this.prisma.user.findUnique({
       where: { username: username.toLowerCase() },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        avatar: true,
+        coverImage: true,
+        bio: true,
+        location: true,
+        website: true,
+        phone: true,
+        cameraBody: true,
+        backupCamera: true,
+        lenses: true,
+        accessories: true,
+        role: true,
+        createdAt: true,
         posts: {
+          where: { deletedAt: null },
           orderBy: { createdAt: 'desc' },
           include: {
+            exif: true,
             _count: { select: { likes: true, comments: true } },
           },
         },
@@ -25,9 +43,8 @@ export class UsersService {
       throw new NotFoundException(`User @${username} not found`);
     }
 
-    const { password, ...result } = user;
     return {
-      ...result,
+      ...user,
       stats: {
         posts: user._count.posts,
         followers: user._count.followers,
@@ -36,57 +53,202 @@ export class UsersService {
     };
   }
 
-  async updateProfile(userId: string, dto: { name?: string; username?: string; email?: string; avatar?: string; bio?: string }) {
+  async updateProfile(
+    userId: string,
+    dto: {
+      name?: string;
+      username?: string;
+      email?: string;
+      avatar?: string;
+      coverImage?: string;
+      bio?: string;
+      location?: string;
+      website?: string;
+      phone?: string;
+      cameraBody?: string;
+      backupCamera?: string;
+      lenses?: string;
+      accessories?: string;
+    },
+  ) {
     if (dto.username) {
       const existing = await this.prisma.user.findFirst({
-        where: { username: dto.username.toLowerCase(), NOT: { id: userId } },
+        where: {
+          username: dto.username.toLowerCase(),
+          NOT: { id: userId },
+        },
       });
       if (existing) {
-        throw new BadRequestException('Username is already taken');
+        throw new BadRequestException('Username is already taken by another creator');
       }
     }
 
-    const updated = await this.prisma.user.update({
+    return this.prisma.user.update({
       where: { id: userId },
       data: {
-        name: dto.name,
-        username: dto.username ? dto.username.toLowerCase() : undefined,
-        email: dto.email ? dto.email.toLowerCase() : undefined,
-        avatar: dto.avatar,
-        bio: dto.bio,
+        ...(dto.name && { name: dto.name }),
+        ...(dto.username && { username: dto.username.toLowerCase() }),
+        ...(dto.email && { email: dto.email.toLowerCase() }),
+        ...(dto.avatar && { avatar: dto.avatar }),
+        ...(dto.coverImage !== undefined && { coverImage: dto.coverImage }),
+        ...(dto.bio !== undefined && { bio: dto.bio }),
+        ...(dto.location !== undefined && { location: dto.location }),
+        ...(dto.website !== undefined && { website: dto.website }),
+        ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.cameraBody !== undefined && { cameraBody: dto.cameraBody }),
+        ...(dto.backupCamera !== undefined && { backupCamera: dto.backupCamera }),
+        ...(dto.lenses !== undefined && { lenses: dto.lenses }),
+        ...(dto.accessories !== undefined && { accessories: dto.accessories }),
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        avatar: true,
+        coverImage: true,
+        bio: true,
+        location: true,
+        website: true,
+        phone: true,
+        cameraBody: true,
+        backupCamera: true,
+        lenses: true,
+        accessories: true,
+        role: true,
+      },
+    });
+  }
+
+  async followUser(followerId: string, targetIdentifier: string) {
+    const targetUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: targetIdentifier },
+          { username: targetIdentifier.toLowerCase() },
+        ],
+        deletedAt: null,
       },
     });
 
-    const { password, ...result } = updated;
-    return result;
-  }
+    if (!targetUser) {
+      throw new NotFoundException(`Target creator @${targetIdentifier} not found`);
+    }
 
-  async toggleFollow(followerId: string, followingId: string) {
-    if (followerId === followingId) {
-      throw new BadRequestException('Cannot follow yourself');
+    if (followerId === targetUser.id) {
+      throw new BadRequestException('You cannot follow yourself');
     }
 
     const existingFollow = await this.prisma.follow.findUnique({
       where: {
-        followerId_followingId: { followerId, followingId },
+        followerId_followingId: {
+          followerId,
+          followingId: targetUser.id,
+        },
       },
     });
 
     if (existingFollow) {
-      await this.prisma.follow.delete({
-        where: { id: existingFollow.id },
-      });
-      return { following: false };
+      await this.prisma.follow.delete({ where: { id: existingFollow.id } });
+      return { following: false, targetUsername: targetUser.username, targetUserId: targetUser.id };
     } else {
       await this.prisma.follow.create({
-        data: { followerId, followingId },
+        data: {
+          followerId,
+          followingId: targetUser.id,
+        },
       });
-      return { following: true };
+      return { following: true, targetUsername: targetUser.username, targetUserId: targetUser.id };
     }
   }
 
-  async getSuggestedCreators() {
-    const creators = await this.prisma.user.findMany({
+  async unfollowUser(followerId: string, targetIdentifier: string) {
+    const targetUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: targetIdentifier },
+          { username: targetIdentifier.toLowerCase() },
+        ],
+      },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException(`Target creator @${targetIdentifier} not found`);
+    }
+
+    const existingFollow = await this.prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId,
+          followingId: targetUser.id,
+        },
+      },
+    });
+
+    if (existingFollow) {
+      await this.prisma.follow.delete({ where: { id: existingFollow.id } });
+    }
+
+    return { following: false, targetUsername: targetUser.username, targetUserId: targetUser.id };
+  }
+
+  async getFollowers(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username: username.toLowerCase() },
+      include: {
+        followers: {
+          include: {
+            follower: {
+              select: { id: true, name: true, username: true, avatar: true, bio: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User @${username} not found`);
+    }
+
+    return user.followers.map((f) => f.follower);
+  }
+
+  async getFollowing(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username: username.toLowerCase() },
+      include: {
+        following: {
+          include: {
+            following: {
+              select: { id: true, name: true, username: true, avatar: true, bio: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User @${username} not found`);
+    }
+
+    return user.following.map((f) => f.following);
+  }
+
+  async getFollowingIds(userId: string) {
+    const follows = await this.prisma.follow.findMany({
+      where: { followerId: userId },
+      select: { followingId: true },
+    });
+    return follows.map((f) => f.followingId);
+  }
+
+  async getSuggestedCreators(currentUserId?: string) {
+    return this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        role: "USER",
+        ...(currentUserId ? { NOT: { id: currentUserId } } : {}),
+      },
       take: 5,
       select: {
         id: true,
@@ -94,17 +256,11 @@ export class UsersService {
         username: true,
         avatar: true,
         bio: true,
-        _count: {
-          select: { followers: true, posts: true },
-        },
+        _count: { select: { followers: true, posts: true } },
       },
       orderBy: {
-        followers: {
-          _count: 'desc',
-        },
+        createdAt: 'desc',
       },
     });
-
-    return creators;
   }
 }

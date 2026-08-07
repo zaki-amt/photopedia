@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -16,8 +17,26 @@ export class PostsController {
   constructor(private postsService: PostsService) {}
 
   @Get()
-  async getFeed(@Query('category') category?: string) {
-    return this.postsService.findAllFeed(category);
+  async getFeed(
+    @Query("category") category?: string,
+    @Query("feed") feedType?: string,
+    @Request() req?: any,
+  ) {
+    const authHeader = req?.headers?.authorization;
+    let userId: string | undefined = undefined;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      try {
+        const token = authHeader.substring(7);
+        const jwt = require("jsonwebtoken");
+        const decoded = jwt.decode(token);
+        if (decoded && decoded.sub) {
+          userId = decoded.sub;
+        }
+      } catch (e) {
+        // Optional auth
+      }
+    }
+    return this.postsService.findAllFeed(category, userId, feedType);
   }
 
   @Get('top-categories')
@@ -65,5 +84,21 @@ export class PostsController {
     @Body('content') content: string,
   ) {
     return this.postsService.addComment(req.user.id, id, content);
+  }
+
+  @Post(':id/flag')
+  async flagPost(
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+    @Request() req?: any,
+  ) {
+    const userId = req?.user?.id;
+    return this.postsService.flagPost(id, reason, userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  async removePost(@Param('id') id: string, @Request() req: any) {
+    return this.postsService.removePost(id, req.user.id, req.user.role);
   }
 }

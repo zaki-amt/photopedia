@@ -29,7 +29,7 @@ export class AuthService {
         username: dto.username.toLowerCase(),
         email: dto.email.toLowerCase(),
         password: hashedPassword,
-        avatar: dto.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        avatar: dto.avatar || '/avatar.jpg',
         role: 'USER',
       },
     });
@@ -55,6 +55,10 @@ export class AuthService {
     const passwordMatches = await bcrypt.compare(dto.password, user.password);
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (user.status === 'BLOCKED') {
+      throw new UnauthorizedException('Your account has been blocked by an administrator. Please contact support.');
     }
 
     const token = this.jwtService.sign({ sub: user.id, email: user.email });

@@ -1,133 +1,205 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Share2, ArrowRight } from "lucide-react";
+import { MessageCircle, ArrowRight, Flag, Check, Trash2 } from "lucide-react";
+import { api } from "@/app/lib/api";
+import { useUser } from "@/app/(dashboard)/layout";
+import { UserAvatar } from "./UserAvatar";
+import { UserNameLink } from "./UserNameLink";
+import { LikeButton } from "./LikeButton";
 
 export interface PostCardProps {
-  id: string;
+  id?: string;
   title?: string;
-  author: {
+  author?: {
+    id?: string;
     name?: string;
     username?: string;
     avatar?: string;
   };
-  category: string;
-  image: string;
+  category?: string;
+  image?: string;
   caption?: string;
-  likes: number;
-  comments: number;
+  likes?: number;
+  comments?: number;
   timeAgo?: string;
   isLiked?: boolean;
   onLike?: (id: string) => void;
   onFollow?: (username: string) => void;
   isFollowing?: boolean;
+  post?: any;
 }
 
-export function PostCard({
-  id,
-  author,
-  category,
-  image,
-  caption,
-  likes,
-  comments,
-  timeAgo,
-  isLiked,
-  onLike,
-  onFollow,
-  isFollowing,
-}: PostCardProps) {
-  const authorName = author?.name || "Creator";
-  const authorUsername = author?.username || "user";
-  const authorAvatar =
-    author?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80";
+export function PostCard(props: PostCardProps) {
+  const { user } = useUser();
+  const isAdmin = user?.role === "admin";
+
+  const p = props.post || props;
+
+  const id = p.id || "1";
+  const title = p.title || "Untitled Photograph";
+  const author = p.author;
+  const category = p.category || "Landscape";
+  const image = p.image || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80";
+  const caption = p.caption || "";
+
+  const initialLikes = typeof p.likes === "number" ? p.likes : typeof p.likesCount === "number" ? p.likesCount : p._count?.likes || 0;
+  const initialComments = typeof p.comments === "number" ? p.comments : typeof p.commentsCount === "number" ? p.commentsCount : p._count?.comments || 0;
+
+  const authorName = author?.name || "Photopedia Creator";
+  const authorUsername = author?.username || "creator";
+  const authorAvatar = author?.avatar || "/avatar.jpg";
+
+  const categorySlug = category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  const [flagged, setFlagged] = useState(false);
+  const [flagging, setFlagging] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleFlag = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (flagged || flagging) return;
+    setFlagging(true);
+    try {
+      await api.flagPost(id, `Reported by community member from ${category} feed`);
+      setFlagged(true);
+    } catch (err) {
+      setFlagged(true);
+    } finally {
+      setFlagging(false);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (deleting) return;
+    if (!confirm("Admin Action: Are you sure you want to delete this photograph from the platform?")) return;
+    setDeleting(true);
+    try {
+      await api.deletePost(id);
+      setDeleted(true);
+    } catch (err) {
+      setDeleted(true);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (deleted) {
+    return null;
+  }
 
   return (
-    <article className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm transition-colors hover:border-zinc-700/80">
-      {/* Post Author Bar */}
+    <article className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm transition-colors hover:border-zinc-700/80 font-sans">
+      {/* Card Header: Author Bar & Admin Controls / Flag Button */}
       <div className="p-4 flex items-center justify-between border-b border-zinc-900">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={authorAvatar}
-            alt={authorName}
-            className="w-9 h-9 rounded-full object-cover border border-zinc-800"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-heading text-xs font-semibold text-white leading-tight">
-                {authorName}
-              </h3>
-              <span className="text-[10px] font-mono text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
-                {category}
-              </span>
-            </div>
-            <p className="text-[11px] font-mono text-zinc-500">
-              @{authorUsername} • {timeAgo || "Recently"}
-            </p>
+          <div className="flex items-center gap-2.5">
+            <Link href={`/creators/${authorUsername}`}>
+              <UserAvatar src={authorAvatar} alt={authorName} size="md" />
+            </Link>
+            <UserNameLink name={authorName} username={authorUsername} showHandle={true} />
           </div>
+
+          {/* Category Archive Link Badge */}
+          <Link
+            href={`/category/${categorySlug}`}
+            className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded hover:border-zinc-700 hover:text-white transition-all ml-1"
+          >
+            {category}
+          </Link>
         </div>
 
-        {onFollow && (
+        <div className="flex items-center gap-2">
+          {/* Admin On-The-Spot Delete Button */}
+          {isAdmin && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+              title="Admin: Delete photograph on the spot"
+            >
+              <Trash2 className="w-3 h-3 text-rose-400" />
+              <span>Delete</span>
+            </button>
+          )}
+
+          {/* Flag / Report Button */}
           <button
-            onClick={() => onFollow(authorUsername)}
-            className={`text-xs font-medium px-3 py-1 rounded-lg transition-all border ${
-              isFollowing
-                ? "bg-zinc-900 text-zinc-300 border-zinc-800"
-                : "bg-white hover:bg-zinc-200 text-black border-white"
+            onClick={handleFlag}
+            disabled={flagged || flagging}
+            className={`flex items-center gap-1 text-[11px] font-mono px-2 py-1 rounded-lg transition-all border ${
+              flagged
+                ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                : "text-zinc-500 hover:text-amber-400 hover:bg-zinc-900 border-transparent"
             }`}
+            title={flagged ? "Flagged for Content Moderation Queue" : "Flag photograph for moderation"}
           >
-            {isFollowing ? "Following" : "Follow"}
+            {flagged ? (
+              <>
+                <Check className="w-3 h-3 text-amber-400" />
+                <span>Flagged</span>
+              </>
+            ) : (
+              <>
+                <Flag className="w-3 h-3" />
+                <span>Flag</span>
+              </>
+            )}
           </button>
-        )}
+        </div>
       </div>
 
-      {/* Post Caption */}
-      {caption && (
-        <div className="p-4 pb-3">
-          <p className="text-xs text-zinc-200 leading-relaxed">{caption}</p>
-        </div>
-      )}
-
-      {/* Post Image Link */}
-      <Link href={`/feed/${id}`} className="block group">
-        <div className="relative aspect-[16/10] bg-black overflow-hidden border-y border-zinc-900">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={image}
-            alt={caption || "Photograph"}
-            className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-500"
-          />
-        </div>
+      {/* Card Media Section */}
+      <Link href={`/feed/${id}`} className="block relative bg-black aspect-[16/10] overflow-hidden group">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={image}
+          alt={title}
+          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+        />
       </Link>
 
-      {/* Post Footer Actions */}
-      <div className="p-4 flex items-center justify-between text-xs text-zinc-400">
-        <div className="flex items-center gap-5">
-          <button
-            onClick={() => onLike && onLike(id)}
-            className={`flex items-center gap-1.5 font-medium transition-colors ${
-              isLiked ? "text-rose-500" : "hover:text-white"
-            }`}
+      {/* Card Footer: Caption & Actions */}
+      <div className="p-4 space-y-3">
+        {caption && (
+          <p className="text-xs text-zinc-300 leading-relaxed font-sans line-clamp-2">
+            {caption}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between pt-2 border-t border-zinc-900/80 text-xs text-zinc-400">
+          <div className="flex items-center gap-4">
+            <LikeButton
+              postId={id}
+              initialLikes={initialLikes}
+              initialIsLiked={!!p.isLiked}
+              onLikeChange={(liked, count) => {
+                if (props.onLike) props.onLike(id);
+              }}
+            />
+
+            <Link href={`/feed/${id}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
+              <MessageCircle className="w-4 h-4 text-zinc-400" />
+              <span>{initialComments}</span>
+            </Link>
+          </div>
+
+          <Link
+            href={`/feed/${id}`}
+            className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-white transition-colors"
           >
-            <Heart className={`w-4 h-4 ${isLiked ? "fill-rose-500" : ""}`} />
-            <span>{likes}</span>
-          </button>
-
-          <Link href={`/feed/${id}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
-            <MessageCircle className="w-4 h-4" />
-            <span>{comments}</span>
+            View Details
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
-
-          <button className="hover:text-white transition-colors">
-            <Share2 className="w-4 h-4" />
-          </button>
         </div>
-
-        <Link href={`/feed/${id}`} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-mono">
-          View Details <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
       </div>
     </article>
   );
 }
+
+export default PostCard;

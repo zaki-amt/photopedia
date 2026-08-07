@@ -153,7 +153,7 @@ async function main() {
       category: 'Architecture',
       tags: 'city, arch',
       authorId: marcusUser.id,
-      moderation: {
+      moderationLogs: {
         create: {
           reason: 'Review requested for copyright verification',
           status: 'PENDING',

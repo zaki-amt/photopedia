@@ -8,90 +8,137 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  username  String   @unique
-  name      String
-  password  String
-  avatar    String?
-  bio       String?
-  role      String   @default("USER")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String          @id @default(uuid())
+  email         String          @unique
+  username      String          @unique
+  name          String
+  password      String
+  avatar        String?         @default("/avatar.jpg")
+  coverImage    String?
+  bio           String?
+  location      String?
+  website       String?
+  phone         String?
+  cameraBody    String?
+  backupCamera  String?
+  lenses        String?
+  accessories   String?
+  role          String          @default("USER")   // USER | ADMIN
+  status        String          @default("ACTIVE") // ACTIVE | PENDING | BANNED
+  deletedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  posts     Post[]
-  likes     Like[]
-  comments  Comment[]
+  posts          Post[]
+  likes          Like[]
+  comments       Comment[]
+  followers      Follow[]        @relation("UserFollowers")
+  following      Follow[]        @relation("UserFollowing")
+  moderationLogs ModerationLog[]
 
-  followers Follow[] @relation("following")
-  following Follow[] @relation("follower")
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([status])
+  @@index([deletedAt])
 }
 
 model Post {
-  id        String   @id @default(uuid())
-  title     String
-  image     String
-  caption   String?
-  category  String
-  tags      String   @default("")
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id             String          @id @default(uuid())
+  title          String
+  image          String
+  caption        String?
+  category       String
+  tags           String          @default("")
+  authorId       String
+  deletedAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
 
-  exif       ExifData?
-  likes      Like[]
-  comments   Comment[]
-  moderation ModerationLog?
+  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  exif           ExifData?
+  likes          Like[]
+  comments       Comment[]
+  moderationLogs ModerationLog[]
+
+  @@index([authorId])
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
+  @@index([deletedAt])
+  @@index([authorId, deletedAt])
 }
 
 model ExifData {
   id       String  @id @default(uuid())
   postId   String  @unique
-  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   camera   String?
   lens     String?
   aperture String?
   shutter  String?
   iso      String?
+
+  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Like {
   id        String   @id @default(uuid())
   userId    String
   postId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
   @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
 }
 
 model Comment {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   content   String
   userId    String
   postId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@index([deletedAt])
 }
 
 model Follow {
   id          String   @id @default(uuid())
   followerId  String
   followingId String
-  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
 
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
   @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
 
 model ModerationLog {
   id        String   @id @default(uuid())
-  postId    String   @unique
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reason    String
+  postId    String?
+  adminId   String?
+  action    String   @default("DELETE_POST")
+  reason    String?
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
+
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  admin     User?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+  @@index([adminId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
 }

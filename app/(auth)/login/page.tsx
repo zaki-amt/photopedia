@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import { Camera, Mail, Lock, ArrowRight, AlertCircle, Key, CheckCircle2 } from "lucide-react";
 import { api } from "@/app/lib/api";
 
 export default function LoginPage() {
@@ -13,30 +13,40 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("photopedia_token");
+      const user = localStorage.getItem("photopedia_user");
+      if (token && user) {
+        router.push("/");
+      }
+    }
+  }, [router]);
+
+  const performLogin = async (loginEmail: string, loginPass: string) => {
     setLoading(true);
     setError(null);
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = loginEmail.trim().toLowerCase();
 
     try {
-      // Attempt backend NestJS API login
-      const data = await api.login({ email: cleanEmail, password });
+      // 1. Attempt NestJS backend API login
+      const data = await api.login({ email: cleanEmail, password: loginPass });
       if (typeof window !== "undefined") {
         localStorage.setItem("photopedia_token", data.accessToken);
         localStorage.setItem("photopedia_user", JSON.stringify(data.user));
       }
       setLoading(false);
-      router.push("/feed");
+      router.push("/");
     } catch (err: any) {
       console.warn("Backend API login notice:", err.message);
 
-      // Extract username and display name dynamically from email
+      // Infer user metadata dynamically from login email
       let inferredName = "User";
       let inferredUsername = "user";
       let inferredRole: "admin" | "user" = "user";
-      let inferredAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80";
+      let inferredAvatar = "/avatar.jpg";
 
       if (cleanEmail.includes("admin")) {
         inferredName = "Photopedia Admin";
@@ -74,12 +84,23 @@ export default function LoginPage() {
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    performLogin(email, password || "AdminPass123!");
+  };
+
+  const quickFillAndLogin = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("AdminPass123!");
+    performLogin(demoEmail, "AdminPass123!");
+  };
+
   return (
     <div className="min-h-screen bg-black text-[#ededed] flex items-center justify-center p-6 font-sans">
       <div className="w-full max-w-sm space-y-6 bg-zinc-950 border border-zinc-800 p-8 rounded-2xl backdrop-blur-xl shadow-2xl">
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-bold shadow-sm">
               <Camera className="w-4 h-4" />
             </div>
             <span className="font-heading text-xl font-bold tracking-tight text-white">Photopedia</span>
@@ -105,7 +126,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="elena@example.com or admin@photopedia.com"
+                placeholder="elena@example.com"
                 className="w-full bg-black border border-zinc-800 rounded-lg py-2.5 pl-10 pr-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
               />
             </div>
@@ -125,7 +146,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Password"
                 className="w-full bg-black border border-zinc-800 rounded-lg py-2.5 pl-10 pr-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
               />
             </div>
@@ -141,10 +162,36 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-[11px] font-mono text-zinc-400 space-y-1">
-          <p className="text-white font-semibold">🔑 Demo Database Accounts:</p>
-          <p>Elena: <span className="text-zinc-300">elena@example.com</span></p>
-          <p>Admin: <span className="text-zinc-300">admin@photopedia.com</span></p>
+        {/* Clickable Quick Fill Demo Accounts Card */}
+        <div className="p-3.5 bg-zinc-900/90 border border-zinc-800 rounded-xl text-xs space-y-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+            <Key className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Click Demo Account to Login:</span>
+          </div>
+
+          <div className="space-y-1.5 font-mono text-[11px]">
+            <button
+              type="button"
+              onClick={() => quickFillAndLogin("elena@example.com")}
+              className="w-full flex items-center justify-between p-2 rounded-lg bg-black border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white transition-all text-left group"
+            >
+              <span>Elena: <strong className="text-white">elena@example.com</strong></span>
+              <span className="text-[10px] text-zinc-500 group-hover:text-white flex items-center gap-1">
+                Fill & Login <ArrowRight className="w-3 h-3" />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => quickFillAndLogin("admin@photopedia.com")}
+              className="w-full flex items-center justify-between p-2 rounded-lg bg-black border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white transition-all text-left group"
+            >
+              <span>Admin: <strong className="text-white">admin@photopedia.com</strong></span>
+              <span className="text-[10px] text-zinc-500 group-hover:text-white flex items-center gap-1">
+                Fill & Login <ArrowRight className="w-3 h-3" />
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className="text-center text-xs text-zinc-400 pt-2 border-t border-zinc-900">

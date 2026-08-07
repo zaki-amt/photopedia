@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@/app/(dashboard)/layout";
 import {
   ArrowLeft,
   Heart,
@@ -10,16 +11,49 @@ import {
   Send,
   ChevronRight,
   Loader2,
+  Flag,
+  Trash2,
 } from "lucide-react";
 import { api } from "@/app/lib/api";
+import { LikeButton } from "@/app/components/LikeButton";
 
 export default function SinglePostPage() {
   const params = useParams();
   const router = useRouter();
   const postId = params.id as string;
+  const { user } = useUser();
+  const isAdmin = user?.role === "admin";
 
   const [postDetails, setPostDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const [flagged, setFlagged] = useState(false);
+  const [flagging, setFlagging] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeletePost = async () => {
+    if (!confirm("Admin Action: Are you sure you want to delete this photograph from the platform?")) return;
+    setDeleting(true);
+    try {
+      await api.deletePost(postId);
+      router.push("/feed");
+    } catch (e) {
+      router.push("/feed");
+    }
+  };
+
+  const handleFlag = async () => {
+    if (flagged || flagging) return;
+    setFlagging(true);
+    try {
+      await api.flagPost(postId, "Reported by user from detail page");
+      setFlagged(true);
+    } catch (e) {
+      setFlagged(true);
+    } finally {
+      setFlagging(false);
+    }
+  };
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [comments, setComments] = useState<any[]>([]);
@@ -32,11 +66,14 @@ export default function SinglePostPage() {
       try {
         const data = await api.getPostById(postId);
         setPostDetails(data);
-        setLikeCount(data.likesCount || data._count?.likes || 0);
+        setLikeCount(data.likesCount ?? data.likes ?? data._count?.likes ?? 0);
         setComments(data.comments || []);
+
+        // Check if liked in database or local session store
+        const storedLikes = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("photopedia_user_likes") || "{}") : {};
+        setIsLiked(!!data.isLiked || !!storedLikes[postId]);
       } catch (err) {
         console.warn("Failed to load DB post, using dynamic route preview:", err);
-        // Minimal fallback for dynamic preview
         setPostDetails({
           id: postId,
           title: "Alpine Horizon Glow & Natural Light Reflections",
@@ -44,7 +81,7 @@ export default function SinglePostPage() {
           author: {
             name: "Elena Rostova",
             username: "elena_photos",
-            avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+            avatar: "/avatar.jpg",
           },
           createdAt: new Date().toISOString(),
           image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80",
@@ -65,45 +102,89 @@ export default function SinglePostPage() {
   }, [postId]);
 
   const handleLike = async () => {
-    try {
-      await api.toggleLike(postId);
-    } catch (e) {
-      // Local fallback
+    if (typeof window !== "undefined" && !localStorage.getItem("photopedia_token")) {
+      router.push("/login");
+      return;
     }
-    setIsLiked(!isLiked);
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+
+    const nextLiked = !isLiked;
+    const nextCount = nextLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+    setIsLiked(nextLiked);
+    setLikeCount(nextCount);
+
+    if (typeof window !== "undefined") {
+      const storedLikes = JSON.parse(localStorage.getItem("photopedia_user_likes") || "{}");
+      storedLikes[postId] = nextLiked;
+      localStorage.setItem("photopedia_user_likes", JSON.stringify(storedLikes));
+    }
+
+    try {
+      const res: any = await api.toggleLike(postId);
+      if (typeof res?.liked === "boolean") {
+        setIsLiked(res.liked);
+        if (typeof window !== "undefined") {
+          const storedLikes = JSON.parse(localStorage.getItem("photopedia_user_likes") || "{}");
+          storedLikes[postId] = res.liked;
+          localStorage.setItem("photopedia_user_likes", JSON.stringify(storedLikes));
+        }
+      }
+      if (typeof res?.count === "number") {
+        setLikeCount(res.count);
+      }
+    } catch (e) {
+      // Keep optimistic state
+    }
   };
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyText.trim()) return;
 
+    if (typeof window !== "undefined" && !localStorage.getItem("photopedia_token")) {
+      router.push("/login");
+      return;
+    }
+
+    const commentContent = replyText.trim();
+    setReplyText("");
+
     try {
-      const created = await api.addComment(postId, replyText);
-      setComments([created, ...comments]);
+      const created = await api.addComment(postId, commentContent);
+      setComments((prev) => [
+        {
+          id: created.id || Date.now().toString(),
+          content: created.content || commentContent,
+          user: created.user || {
+            name: user?.name || "Elena Rostova",
+            username: user?.username || "elena_photos",
+            avatar: user?.avatar || "/avatar.jpg",
+          },
+          createdAt: created.createdAt || new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     } catch (err) {
-      setComments([
+      setComments((prev) => [
         {
           id: Date.now().toString(),
+          content: commentContent,
           user: {
-            name: "You",
-            username: "me",
-            avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+            name: user?.name || "Elena Rostova",
+            username: user?.username || "elena_photos",
+            avatar: user?.avatar || "/avatar.jpg",
           },
           createdAt: new Date().toISOString(),
-          content: replyText,
         },
-        ...comments,
+        ...prev,
       ]);
     }
-    setReplyText("");
   };
 
   if (loading) {
     return (
       <div className="p-16 text-center space-y-3 font-sans">
         <Loader2 className="w-8 h-8 text-white animate-spin mx-auto" />
-        <p className="text-xs font-mono text-zinc-400">Loading photograph record from database...</p>
+        <p className="text-xs font-mono text-zinc-400">Loading photograph...</p>
       </div>
     );
   }
@@ -124,23 +205,6 @@ export default function SinglePostPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-16 font-sans">
-      {/* Top Header Breadcrumbs */}
-      <div className="flex items-center gap-3 text-xs font-mono text-zinc-400">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-white px-3 py-1.5 rounded-lg transition-all"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back
-        </button>
-        <div className="flex items-center gap-1.5 text-zinc-500">
-          <span>Photos</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <span>{postDetails.category}</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <span className="text-white font-medium">{postDetails.title || "Detail View"}</span>
-        </div>
-      </div>
 
       {/* Main Full Hero Image Card */}
       <div className="relative aspect-[21/9] w-full bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl">
@@ -169,30 +233,53 @@ export default function SinglePostPage() {
           {/* Engagement Bar */}
           <div className="flex items-center justify-between py-3 border-y border-zinc-900 text-xs text-zinc-400">
             <div className="flex items-center gap-6">
-              <button
-                onClick={handleLike}
-                className={`flex items-center gap-2 font-medium transition-colors ${
-                  isLiked ? "text-rose-500" : "hover:text-white"
-                }`}
-              >
-                <Heart className={`w-4 h-4 ${isLiked ? "fill-rose-500" : ""}`} />
-                <span>{likeCount}</span>
-              </button>
+              <LikeButton
+                postId={postId}
+                initialLikes={likeCount}
+                initialIsLiked={isLiked}
+              />
 
               <div className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4 text-zinc-400" />
                 <span>{comments.length}</span>
               </div>
             </div>
+
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={handleDeletePost}
+                  disabled={deleting}
+                  className="flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                  title="Admin: Delete photograph on the spot"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleFlag}
+                disabled={flagged || flagging}
+                className={`flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                  flagged
+                    ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                    : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 border-zinc-800"
+                }`}
+              >
+                <Flag className="w-3.5 h-3.5" />
+                <span>{flagged ? "Flagged for Moderation" : "Flag Photograph"}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Reply Comment Box */}
+          {/* Reply Comment Box with User Profile Avatar */}
           <form onSubmit={handleAddComment} className="flex items-center gap-3 bg-zinc-950 p-2 pl-3 rounded-xl border border-zinc-800">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"
-              alt="User"
-              className="w-7 h-7 rounded-full object-cover border border-zinc-800 shrink-0"
+              src={user?.avatar || "/avatar.jpg"}
+              alt={user?.name || "User Avatar"}
+              className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0"
             />
             <input
               type="text"
@@ -212,10 +299,10 @@ export default function SinglePostPage() {
           {/* Comments Thread */}
           <div className="space-y-4 pt-2">
             {comments.map((c: any) => (
-              <div key={c.id} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900">
+              <div key={c.id || Math.random()} className="flex items-start gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-900">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={c.user?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80"}
+                  src={c.user?.avatar || "/avatar.jpg"}
                   alt={c.user?.name || "Commenter"}
                   className="w-8 h-8 rounded-full object-cover border border-zinc-800 shrink-0 mt-0.5"
                 />
@@ -243,15 +330,20 @@ export default function SinglePostPage() {
             <div className="space-y-3.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-400 font-medium">Creator</span>
-                <div className="flex items-center gap-2">
+                <Link
+                  href={`/creators/${postDetails.author?.username || "admin"}`}
+                  className="flex items-center gap-2 group hover:text-white transition-colors"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={postDetails.author?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"}
+                    src={postDetails.author?.avatar || "/avatar.jpg"}
                     alt={postDetails.author?.name || "Creator"}
-                    className="w-5 h-5 rounded-full object-cover"
+                    className="w-5 h-5 rounded-full object-cover border border-zinc-800 group-hover:border-zinc-500 transition-colors"
                   />
-                  <span className="font-semibold text-white font-heading">{postDetails.author?.name || "Creator"}</span>
-                </div>
+                  <span className="font-semibold text-white font-heading group-hover:underline">
+                    {postDetails.author?.name || "Creator"}
+                  </span>
+                </Link>
               </div>
 
               <div className="flex items-center justify-between">

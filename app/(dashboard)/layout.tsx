@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -20,6 +20,11 @@ import {
   RefreshCw,
   PlusCircle,
   Loader2,
+  Check,
+  Compass,
+  ChevronRight,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 
 interface UserContextType {
@@ -33,7 +38,7 @@ interface UserContextType {
     bio?: string;
   } | null;
   setUser: React.Dispatch<React.SetStateAction<UserContextType["user"]>>;
-  toggleRole?: () => void;
+  toggleRole: () => void;
   logout: () => void;
 }
 
@@ -47,24 +52,79 @@ export const useUser = () => {
   return context;
 };
 
+const CATEGORIES_LIST = [
+  { name: "All Categories", href: "/category", icon: "🌐" },
+  { name: "Landscape", href: "/category/landscape", icon: "🏔️" },
+  { name: "Urban & Street", href: "/category/urban-street", icon: "🌆" },
+  { name: "Portraits", href: "/category/portraits", icon: "📸" },
+  { name: "Architecture", href: "/category/architecture", icon: "🏛️" },
+  { name: "Astro & Night", href: "/category/astro-night", icon: "🌌" },
+  { name: "Seascape", href: "/category/seascape", icon: "🌊" },
+];
+
+function getBreadcrumbs(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  const items = [{ name: "Feed", href: "/feed" }];
+
+  if (segments.length === 0 || (segments.length === 1 && segments[0] === "feed")) {
+    return items;
+  }
+
+  let currentPath = "";
+  segments.forEach((segment, idx) => {
+    currentPath += `/${segment}`;
+    if (segment === "feed" && idx === 0) return;
+
+    let label = segment;
+    if (segment === "category") label = "Categories";
+    else if (segment === "creators") label = "Creators";
+    else if (segment === "profile") label = "Profile";
+    else if (segment === "edit") label = "Edit Profile";
+    else if (segment === "admin") label = "Admin";
+    else if (segment === "users") label = "Users";
+    else if (segment === "posts") label = "Moderation";
+    else if (segment === "new") label = "New Shot";
+    else if (segments[idx - 1] === "category") {
+      label = segment.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    } else if (segments[idx - 1] === "creators") {
+      label = `@${segment}`;
+    } else if (segments[idx - 1] === "feed") {
+      label = "Photograph Details";
+    }
+
+    items.push({ name: label, href: currentPath });
+  });
+
+  return items;
+}
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   const [user, setUser] = useState<UserContextType["user"]>(null);
 
-  // Read logged in user session from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedToken = localStorage.getItem("photopedia_token");
       const storedUser = localStorage.getItem("photopedia_user");
 
+      const isProtected =
+        pathname === "/feed/new" ||
+        pathname === "/profile/edit" ||
+        pathname.startsWith("/admin");
+
       if (!storedToken || !storedUser) {
         setLoadingSession(false);
         setUser(null);
-        router.push("/login");
+        if (isProtected) {
+          router.push("/login");
+        }
         return;
       }
 
@@ -76,17 +136,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           username: parsed.username,
           email: parsed.email,
           role: (parsed.role?.toString().toLowerCase() === "admin" ? "admin" : "user") as "admin" | "user",
-          avatar: parsed.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+          avatar: parsed.avatar || "/avatar.jpg",
           bio: parsed.bio,
         });
       } catch (e) {
         console.error("Failed to parse stored user session:", e);
-        router.push("/login");
+        setUser(null);
+        if (isProtected) {
+          router.push("/login");
+        }
       } finally {
         setLoadingSession(false);
       }
     }
-  }, [router]);
+  }, [pathname, router]);
 
   const toggleRole = () => {
     if (!user || user.role !== "admin") return;
@@ -110,33 +173,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
-  const navigation = [
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/feed?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const exploreNavigation = [
     { name: "Feed", href: "/feed", icon: Home },
     { name: "New Shot", href: "/feed/new", icon: PlusCircle },
+  ];
+
+  const communityNavigation = [
+    { name: "Creators", href: "/creators", icon: Users },
+  ];
+
+  const accountNavigation = [
     { name: "Profile", href: "/profile", icon: User },
     { name: "Settings", href: "/profile/edit", icon: Settings },
   ];
 
   const adminNavigation = [
     { name: "Overview", href: "/admin", icon: Shield },
+    { name: "Categories Manager", href: "/admin/categories", icon: Layers },
     { name: "Users Directory", href: "/admin/users", icon: Users },
     { name: "Moderation Queue", href: "/admin/posts", icon: Grid },
+  ];
+
+  const NOTIFICATIONS = [
+    { id: 1, text: "Elena Rostova published a new photo in Landscape", time: "10m ago" },
+    { id: 2, text: "Marcus Chen liked your recent submission", time: "1h ago" },
+    { id: 3, text: "Sophia Martinez started following you", time: "2h ago" },
   ];
 
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-black text-[#ededed] flex flex-col items-center justify-center space-y-3 font-sans">
         <Loader2 className="w-8 h-8 text-white animate-spin" />
-        <p className="text-xs font-mono text-zinc-400">Loading user session from database...</p>
+        <p className="text-xs font-mono text-zinc-400">Loading session...</p>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
-  const isAdmin = user.role === "admin";
+  const isAdmin = user?.role === "admin";
+  const breadcrumbs = getBreadcrumbs(pathname);
 
   return (
     <UserContext.Provider value={{ user, setUser, toggleRole, logout }}>
@@ -157,38 +238,50 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
 
-        {/* Sidebar */}
+        {/* Framer/Vercel Styled Sidebar */}
         <aside
           className={`${
             mobileMenuOpen ? "block" : "hidden"
-          } md:block w-full md:w-64 bg-black border-r border-zinc-800/80 p-5 flex flex-col justify-between fixed md:sticky top-0 h-auto md:h-screen z-40`}
+          } md:flex w-full md:w-64 bg-zinc-950 border-r border-zinc-800/80 p-4 flex-col justify-between fixed md:sticky top-0 h-screen z-40 overflow-y-auto shrink-0`}
         >
-          <div className="space-y-6">
-            {/* Logo */}
-            <Link href="/feed" className="hidden md:flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-md bg-white text-black flex items-center justify-center font-bold shadow-sm">
+          <div className="space-y-5">
+            {/* Sidebar Header Logo (Links directly to /feed) */}
+            <Link href="/feed" className="hidden md:flex items-center gap-2.5 px-2 py-1">
+              <div className="w-7 h-7 rounded-lg bg-white text-black flex items-center justify-center font-bold shadow-sm">
                 <Camera className="w-4 h-4" />
               </div>
-              <span className="font-heading text-lg font-bold tracking-tight text-white">Photopedia</span>
+              <span className="font-heading text-base font-bold tracking-tight text-white">Photopedia</span>
             </Link>
 
-            {/* Nav Menu */}
-            <nav className="space-y-6">
+            {/* Sidebar Search Input */}
+            <form onSubmit={handleSearchSubmit} className="relative px-1">
+              <Search className="w-3.5 h-3.5 absolute left-3.5 top-2.5 text-zinc-500 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-black border border-zinc-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-700 transition-colors"
+              />
+            </form>
+
+            <nav className="space-y-5">
+              {/* SECTION: EXPLORE */}
               <div className="space-y-1">
-                <p className="px-3 text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-widest mb-2">
-                  Creator Space
+                <p className="px-3 text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider mb-1">
+                  Explore
                 </p>
-                {navigation.map((item) => {
+                {exploreNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                         isActive
-                          ? "bg-zinc-900 text-white border border-zinc-800"
-                          : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+                          ? "bg-zinc-800 text-white font-semibold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
                       }`}
                     >
                       <item.icon className="w-4 h-4 text-zinc-400" />
@@ -198,11 +291,104 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 })}
               </div>
 
-              {/* Admin Navigation */}
+              {/* SECTION: CATEGORIES (Expandable Submenu) */}
+              <div className="space-y-1">
+                <button
+                  onClick={() => setCategoriesOpen(!categoriesOpen)}
+                  className="w-full flex items-center justify-between px-3 text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider mb-1 hover:text-zinc-300 transition-colors group"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3 h-3 text-zinc-500" />
+                    Categories
+                  </span>
+                  <ChevronRight
+                    className={`w-3.5 h-3.5 text-zinc-500 transition-transform duration-200 ${
+                      categoriesOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+
+                {categoriesOpen && (
+                  <div className="space-y-0.5 pl-2 border-l border-zinc-800/80 ml-3">
+                    {CATEGORIES_LIST.map((cat) => {
+                      const isActive = pathname === cat.href;
+                      return (
+                        <Link
+                          key={cat.name}
+                          href={cat.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                            isActive
+                              ? "bg-zinc-800 text-white font-semibold"
+                              : "text-zinc-400 hover:text-white hover:bg-zinc-900/60"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 truncate">
+                            <span className="text-xs">{cat.icon}</span>
+                            {cat.name}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION: COMMUNITY */}
+              <div className="space-y-1">
+                <p className="px-3 text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider mb-1">
+                  Community
+                </p>
+                {communityNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? "bg-zinc-800 text-white font-semibold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 text-zinc-400" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* SECTION: ACCOUNT */}
+              <div className="space-y-1">
+                <p className="px-3 text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider mb-1">
+                  Account
+                </p>
+                {accountNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                        isActive
+                          ? "bg-zinc-800 text-white font-semibold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 text-zinc-400" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* SECTION: ADMIN CONTROLS */}
               {isAdmin && (
-                <div className="space-y-1 pt-4 border-t border-zinc-900">
-                  <div className="flex items-center justify-between px-3 mb-2">
-                    <p className="text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-widest">
+                <div className="space-y-1 pt-3 border-t border-zinc-900">
+                  <div className="flex items-center justify-between px-3 mb-1">
+                    <p className="text-[10px] font-mono font-medium text-zinc-500 uppercase tracking-wider">
                       Admin Controls
                     </p>
                     <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
@@ -216,10 +402,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         key={item.name}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                           isActive
-                            ? "bg-zinc-900 text-white border border-zinc-800"
-                            : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+                            ? "bg-zinc-800 text-white font-semibold shadow-sm"
+                            : "text-zinc-400 hover:text-white hover:bg-zinc-900/80"
                         }`}
                       >
                         <item.icon className="w-4 h-4 text-zinc-400" />
@@ -232,71 +418,120 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </nav>
           </div>
 
-          {/* Logged In User Card */}
-          <div className="pt-4 border-t border-zinc-900 space-y-2.5 mt-auto">
-            {isAdmin && (
-              <button
-                onClick={toggleRole}
-                className="w-full flex items-center justify-between gap-2 p-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white hover:border-zinc-700 transition-all"
-                title="Admin Role Toggle"
-              >
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-[11px]">ADMIN MODE</span>
-                </div>
-                <RefreshCw className="w-3 h-3 text-zinc-500" />
-              </button>
-            )}
+          {/* Bottom Sidebar User Profile / Auth State */}
+          <div className="pt-4 border-t border-zinc-900 space-y-3">
+            {user ? (
+              <div className="flex items-center justify-between bg-black p-2 rounded-xl border border-zinc-900">
+                <Link href="/profile" className="flex items-center gap-2.5 min-w-0 group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={user.avatar || "/avatar.jpg"}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full object-cover border border-zinc-800 shrink-0 group-hover:border-zinc-500 transition-colors"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white truncate font-heading group-hover:underline">
+                      {user.name}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 font-mono truncate">@{user.username}</p>
+                  </div>
+                </Link>
 
-            <div className="flex items-center gap-2.5 p-2 rounded-lg bg-zinc-950 border border-zinc-800">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white truncate font-heading">{user.name}</p>
-                <p className="text-[10px] text-zinc-500 font-mono truncate">@{user.username}</p>
+                <button
+                  onClick={logout}
+                  className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-zinc-900 rounded-lg transition-colors"
+                  title="Log Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
-            </div>
-
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-white px-2.5 py-1.5 transition-colors w-full"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Log Out
-            </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  className="w-full text-center bg-white text-black py-2 rounded-xl text-xs font-semibold hover:bg-zinc-200 transition-all shadow-sm"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/register"
+                  className="w-full text-center bg-zinc-900 text-zinc-300 border border-zinc-800 py-2 rounded-xl text-xs font-semibold hover:text-white hover:border-zinc-700 transition-all"
+                >
+                  Create Account
+                </Link>
+              </div>
+            )}
           </div>
         </aside>
 
-        {/* Main Section */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="border-b border-zinc-800/80 bg-black/80 backdrop-blur-md px-6 py-3.5 sticky top-0 z-30 flex items-center justify-between">
-            <div className="relative w-full max-w-sm">
-              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search photos, creators, EXIF tags..."
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-1.5 pl-9 pr-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
-              />
+        {/* Main Content Viewport */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+          {/* Top Bar Header (Breadcrumbs Only) */}
+          <header className="hidden md:flex items-center justify-between h-14 px-8 border-b border-zinc-800/80 bg-black/50 backdrop-blur-sm sticky top-0 z-30">
+            {/* Clean Breadcrumb Navigation */}
+            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
+              {breadcrumbs.map((crumb, idx) => {
+                const isLast = idx === breadcrumbs.length - 1;
+                return (
+                  <React.Fragment key={crumb.href + idx}>
+                    {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />}
+                    {isLast ? (
+                      <span className="text-white font-semibold">{crumb.name}</span>
+                    ) : (
+                      <Link href={crumb.href} className="hover:text-white transition-colors">
+                        {crumb.name}
+                      </Link>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
 
-            <div className="flex items-center gap-3 ml-4">
-              <span className="hidden sm:inline-flex items-center gap-1.5 bg-zinc-900 text-zinc-300 px-3 py-1 rounded-lg text-xs font-mono border border-zinc-800">
-                <User className="w-3.5 h-3.5 text-zinc-400" />
-                @{user.username}
-              </span>
+            <div className="flex items-center gap-4">
+              {/* Admin Role Toggle Indicator */}
+              {user?.role === "admin" && (
+                <button
+                  onClick={toggleRole}
+                  className="flex items-center gap-1.5 font-mono text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-lg hover:bg-emerald-500/20 transition-colors"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>ADMIN ROLE</span>
+                </button>
+              )}
 
-              <button className="relative p-2 text-zinc-400 hover:text-white rounded-lg transition-colors border border-transparent hover:border-zinc-800">
-                <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-white rounded-full" />
-              </button>
+              {/* Notifications Center Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-900 transition-colors relative"
+                >
+                  <Bell className="w-4 h-4" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-black" />
+                </button>
+
+                {notificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-zinc-950 border border-zinc-800 rounded-2xl p-4 shadow-2xl space-y-3 z-50">
+                    <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+                      <h4 className="font-heading text-xs font-bold text-white">Notifications</h4>
+                      <span className="text-[10px] font-mono text-zinc-500">REALTIME</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {NOTIFICATIONS.map((n) => (
+                        <div key={n.id} className="p-2 bg-black rounded-xl border border-zinc-900 text-xs space-y-1">
+                          <p className="text-zinc-300 leading-tight">{n.text}</p>
+                          <span className="text-[10px] font-mono text-zinc-500">{n.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
-          <main className="flex-1 p-6 md:p-8 max-w-6xl w-full mx-auto">{children}</main>
+          {/* Main Workspace Render */}
+          <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">{children}</main>
         </div>
       </div>
     </UserContext.Provider>

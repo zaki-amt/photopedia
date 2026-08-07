@@ -42,8 +42,13 @@ export const api = {
     }),
 
   // Posts
-  getPosts: (category?: string) =>
-    fetchApi<any[]>(`/posts${category ? `?category=${encodeURIComponent(category)}` : ""}`),
+  getPosts: (category?: string, feed?: string) => {
+    const query = new URLSearchParams();
+    if (category && category !== "All") query.append("category", category);
+    if (feed) query.append("feed", feed);
+    const queryString = query.toString();
+    return fetchApi<any[]>(`/posts${queryString ? `?${queryString}` : ""}`);
+  },
 
   getPostById: (id: string) => fetchApi<any>(`/posts/${id}`),
 
@@ -54,13 +59,22 @@ export const api = {
     }),
 
   toggleLike: (id: string) =>
-    fetchApi<{ liked: boolean }>(`/posts/${id}/like`, { method: "POST" }),
+    fetchApi<{ liked: boolean; count: number }>(`/posts/${id}/like`, { method: "POST" }),
 
   addComment: (id: string, content: string) =>
     fetchApi<any>(`/posts/${id}/comment`, {
       method: "POST",
       body: JSON.stringify({ content }),
     }),
+
+  flagPost: (id: string, reason?: string) =>
+    fetchApi<any>(`/posts/${id}/flag`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  deletePost: (id: string) =>
+    fetchApi<any>(`/posts/${id}`, { method: "DELETE" }),
 
   getTopCategories: () => fetchApi<any[]>("/posts/top-categories"),
 
@@ -74,7 +88,16 @@ export const api = {
     }),
 
   toggleFollow: (id: string) =>
-    fetchApi<{ following: boolean }>(`/users/${id}/follow`, { method: "POST" }),
+    fetchApi<{ following: boolean; targetUsername: string; targetUserId?: string }>(`/users/${id}/follow`, { method: "POST" }),
+
+  unfollowUser: (id: string) =>
+    fetchApi<{ following: boolean; targetUsername: string; targetUserId?: string }>(`/users/${id}/follow`, { method: "DELETE" }),
+
+  getFollowingIds: () => fetchApi<string[]>("/users/me/following-ids"),
+
+  getFollowers: (username: string) => fetchApi<any[]>(`/users/${username}/followers`),
+
+  getFollowing: (username: string) => fetchApi<any[]>(`/users/${username}/following`),
 
   getSuggestedCreators: () => fetchApi<any[]>("/users/suggested"),
 
@@ -85,6 +108,12 @@ export const api = {
 
   toggleUserRole: (id: string) =>
     fetchApi<any>(`/admin/users/${id}/role`, { method: "POST" }),
+
+  toggleUserStatus: (id: string) =>
+    fetchApi<any>(`/admin/users/${id}/status`, { method: "POST" }),
+
+  deleteUser: (id: string) =>
+    fetchApi<any>(`/admin/users/${id}`, { method: "DELETE" }),
 
   getModerationQueue: () => fetchApi<any[]>("/admin/moderation"),
 

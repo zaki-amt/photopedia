@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, Mail, Lock, User, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
@@ -15,6 +15,17 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto redirect if already logged in
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("photopedia_token");
+      const user = localStorage.getItem("photopedia_user");
+      if (token && user) {
+        router.push("/");
+      }
+    }
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -24,21 +35,20 @@ export default function RegisterPage() {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Send registration request to NestJS backend database API
+      // 1. Register user via NestJS API
       const data = await api.register({
-        name,
-        username: cleanUsername,
         email: cleanEmail,
         password,
+        name,
+        username: cleanUsername,
       });
 
       if (typeof window !== "undefined") {
         localStorage.setItem("photopedia_token", data.accessToken);
         localStorage.setItem("photopedia_user", JSON.stringify(data.user));
       }
-
       setLoading(false);
-      router.push("/feed");
+      router.push("/");
     } catch (err: any) {
       console.warn("Backend API registration error/fallback:", err.message);
 
@@ -49,14 +59,14 @@ export default function RegisterPage() {
         return;
       }
 
-      // Create persistent session for the new registered user (e.g. @zed)
+      // Create persistent session for the new registered user
       const newUserSession = {
         id: `user-${Date.now()}`,
         name: name || "New Creator",
-        username: cleanUsername || "zed",
+        username: cleanUsername || "user_name",
         email: cleanEmail,
         role: "user",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+        avatar: "/avatar.jpg",
         bio: "Photographer documenting visual light reflections.",
       };
 
@@ -101,7 +111,7 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Zed"
+                placeholder="Full Name"
                 className="w-full bg-black border border-zinc-800 rounded-lg py-2.5 pl-10 pr-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
               />
             </div>
@@ -116,7 +126,7 @@ export default function RegisterPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="zed"
+                placeholder="user_name"
                 className="w-full bg-black border border-zinc-800 rounded-lg py-2.5 pl-8 pr-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
               />
             </div>
@@ -131,7 +141,7 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="zed@example.com"
+                placeholder="user@example.com"
                 className="w-full bg-black border border-zinc-800 rounded-lg py-2.5 pl-10 pr-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
               />
             </div>

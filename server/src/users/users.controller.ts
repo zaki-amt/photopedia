@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Post,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -18,6 +19,22 @@ export class UsersController {
   @Get('suggested')
   async getSuggested() {
     return this.usersService.getSuggestedCreators();
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me/following-ids')
+  async getMyFollowingIds(@Request() req: any) {
+    return this.usersService.getFollowingIds(req.user.id);
+  }
+
+  @Get(':username/followers')
+  async getFollowers(@Param('username') username: string) {
+    return this.usersService.getFollowers(username);
+  }
+
+  @Get(':username/following')
+  async getFollowing(@Param('username') username: string) {
+    return this.usersService.getFollowing(username);
   }
 
   @Get(':username')
@@ -36,7 +53,13 @@ export class UsersController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/follow')
-  async toggleFollow(@Request() req: any, @Param('id') targetUserId: string) {
-    return this.usersService.toggleFollow(req.user.id, targetUserId);
+  async toggleFollow(@Request() req: any, @Param('id') targetIdentifier: string) {
+    return this.usersService.followUser(req.user.id, targetIdentifier);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id/follow')
+  async unfollow(@Request() req: any, @Param('id') targetIdentifier: string) {
+    return this.usersService.unfollowUser(req.user.id, targetIdentifier);
   }
 }

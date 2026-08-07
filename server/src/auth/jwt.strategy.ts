@@ -22,6 +22,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Invalid user token');
     }
 
+    if (user.status === 'BLOCKED') {
+      throw new UnauthorizedException('Your account has been blocked by an administrator. Please contact support.');
+    }
+
     const { password, ...result } = user;
     return result;
   }
