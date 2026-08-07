@@ -87,9 +87,16 @@ export function SidebarCategories({
       </div>
 
       {loading ? (
-        <div className="p-4 text-center space-y-2">
-          <Loader2 className="w-4 h-4 text-white animate-spin mx-auto" />
-          <p className="text-[10px] font-mono text-zinc-500">Fetching categories...</p>
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-black border border-zinc-900">
+              <div className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded shimmer-effect shrink-0" />
+                <div className="w-24 h-3 rounded shimmer-effect" />
+              </div>
+              <div className="w-10 h-3 rounded shimmer-effect" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-2">

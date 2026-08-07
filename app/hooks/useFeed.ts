@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/app/lib/api";
 import { useUser } from "@/app/(dashboard)/layout";
 
 export function useFeed() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
+
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState<"for-you" | "following">("for-you");
   const [posts, setPosts] = useState<any[]>([]);
@@ -15,11 +18,11 @@ export function useFeed() {
   const [loading, setLoading] = useState(true);
   const [followingMap, setFollowingMap] = useState<{ [key: string]: boolean }>({});
 
-  const fetchFeed = useCallback(async (tab: "for-you" | "following" = activeTab) => {
+  const fetchFeed = useCallback(async (tab: "for-you" | "following" = activeTab, searchStr: string = searchQuery) => {
     setLoading(true);
     try {
       const feedType = tab === "following" ? "following" : undefined;
-      const dbPosts = await api.getPosts(undefined, feedType);
+      const dbPosts = await api.getPosts(undefined, feedType, searchStr);
       setPosts(dbPosts || []);
 
       const dbCats = await api.getTopCategories();
@@ -62,59 +65,46 @@ export function useFeed() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, searchQuery]);
 
   useEffect(() => {
-    fetchFeed(activeTab);
-  }, [activeTab, fetchFeed]);
+    fetchFeed(activeTab, searchQuery);
+  }, [activeTab, searchQuery, fetchFeed]);
 
   const changeTab = (tab: "for-you" | "following") => {
-    if (tab === "following" && !user) {
-      router.push("/login");
-      return;
-    }
     setActiveTab(tab);
   };
 
-  const handleLike = async (id: string) => {
-    try {
-      await api.toggleLike(id);
-    } catch (e) {
-      // Local fallback
-    }
+  const handleLike = (postId: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          const nextLiked = !p.isLiked;
+          const nextCount = nextLiked ? (p.likes || 0) + 1 : Math.max(0, (p.likes || 0) - 1);
+          return { ...p, isLiked: nextLiked, likes: nextCount, likesCount: nextCount };
+        }
+        return p;
+      })
+    );
   };
 
-  const toggleFollow = async (usernameOrId: string) => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    const isCurrentlyFollowing = !!(followingMap[usernameOrId]);
+  const toggleFollow = (username: string) => {
     setFollowingMap((prev) => ({
       ...prev,
-      [usernameOrId]: !isCurrentlyFollowing,
+      [username]: !prev[username],
     }));
+  };
 
-    try {
-      const res = await api.toggleFollow(usernameOrId);
-      setFollowingMap((prev) => ({
-        ...prev,
-        [usernameOrId]: res.following,
-        ...(res.targetUserId ? { [res.targetUserId]: res.following } : {}),
-        ...(res.targetUsername ? { [res.targetUsername]: res.following } : {}),
-      }));
-      if (activeTab === "following") {
-        fetchFeed("following");
-      }
-    } catch (e) {
-      // Keep optimistic
-    }
+  const clearSearch = () => {
+    router.push("/feed");
   };
 
   return {
     user,
     activeTab,
     changeTab,
+    searchQuery,
+    clearSearch,
     posts,
     categories,
     creators,

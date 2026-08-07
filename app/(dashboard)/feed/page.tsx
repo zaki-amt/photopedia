@@ -1,21 +1,24 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
-import { PlusCircle, Loader2, RefreshCw } from "lucide-react";
+import { PlusCircle, Loader2, RefreshCw, Search, X } from "lucide-react";
 import { useFeed } from "@/app/hooks/useFeed";
 import { PostCard } from "@/app/components/PostCard";
+import { PostFeedSkeleton } from "@/app/components/PostCardSkeleton";
 import { UserAvatar } from "@/app/components/UserAvatar";
 import { SidebarCategories } from "@/app/components/SidebarCategories";
 import { SidebarCreators } from "@/app/components/SidebarCreators";
 import { FeedTabs } from "./components/FeedTabs";
 import { FollowingEmptyState } from "./components/FollowingEmptyState";
 
-export default function FeedPage() {
+function FeedContent() {
   const {
     user,
     activeTab,
     changeTab,
+    searchQuery,
+    clearSearch,
     posts,
     categories,
     creators,
@@ -28,18 +31,36 @@ export default function FeedPage() {
 
   return (
     <div className="space-y-6 pb-12 font-sans">
-      {/* Top Tab Bar Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+      {/* Top Tab Bar Header & Search Active Indicator */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
         <FeedTabs activeTab={activeTab} onTabChange={changeTab} />
 
-        <button
-          onClick={() => fetchFeed(activeTab)}
-          className="flex items-center gap-1.5 font-mono text-[11px] text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg transition-colors"
-          title="Refresh Feed"
-        >
-          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {searchQuery && (
+            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1 rounded-lg font-mono text-xs text-zinc-300">
+              <Search className="w-3.5 h-3.5 text-zinc-400" />
+              <span>
+                Search: <strong className="text-white">&quot;{searchQuery}&quot;</strong>
+              </span>
+              <button
+                onClick={clearSearch}
+                className="p-0.5 hover:text-white text-zinc-400 transition-colors ml-1"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          <button
+            onClick={() => fetchFeed(activeTab)}
+            className="flex items-center gap-1.5 font-mono text-[11px] text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-lg transition-colors"
+            title="Refresh Feed"
+          >
+            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Grid Layout: Feed + Right Sidebar */}
@@ -62,12 +83,23 @@ export default function FeedPage() {
 
           {/* Posts Feed or Loading / Empty States */}
           {loading ? (
-            <div className="p-12 text-center bg-zinc-950 border border-zinc-800 rounded-2xl space-y-3">
-              <Loader2 className="w-6 h-6 text-white animate-spin mx-auto" />
-              <p className="text-xs font-mono text-zinc-400">Loading {activeTab === "following" ? "following" : "community"} feed...</p>
-            </div>
+            <PostFeedSkeleton count={3} />
           ) : posts.length === 0 ? (
-            activeTab === "following" ? (
+            searchQuery ? (
+              <div className="p-12 text-center bg-zinc-950 border border-zinc-800 rounded-2xl space-y-3">
+                <Search className="w-8 h-8 text-zinc-500 mx-auto" />
+                <h3 className="font-heading text-sm font-semibold text-white">No Results Found</h3>
+                <p className="text-xs text-zinc-400">
+                  No photographs or creators matched &quot;{searchQuery}&quot;
+                </p>
+                <button
+                  onClick={clearSearch}
+                  className="inline-block bg-white text-black px-4 py-2 rounded-xl text-xs font-semibold hover:bg-zinc-200 transition-all mt-2"
+                >
+                  Clear Search Filter
+                </button>
+              </div>
+            ) : activeTab === "following" ? (
               <FollowingEmptyState />
             ) : (
               <div className="p-12 text-center bg-zinc-950 border border-zinc-800 rounded-2xl space-y-3">
@@ -114,5 +146,18 @@ export default function FeedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-16 text-center space-y-3 font-sans">
+        <Loader2 className="w-8 h-8 text-white animate-spin mx-auto" />
+        <p className="text-xs font-mono text-zinc-400">Loading feed...</p>
+      </div>
+    }>
+      <FeedContent />
+    </Suspense>
   );
 }

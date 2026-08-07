@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MessageCircle, ArrowRight, Flag, Check, Trash2 } from "lucide-react";
+import { MessageCircle, ArrowRight, Flag, Check, Trash2, Pencil } from "lucide-react";
 import { api } from "@/app/lib/api";
 import { useUser } from "@/app/(dashboard)/layout";
 import { UserAvatar } from "./UserAvatar";
@@ -51,6 +51,8 @@ export function PostCard(props: PostCardProps) {
   const authorUsername = author?.username || "creator";
   const authorAvatar = author?.avatar || "/avatar.jpg";
 
+  const isAuthor = user && (user.username === authorUsername || user.id === author?.id);
+
   const categorySlug = category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
   const [flagged, setFlagged] = useState(false);
@@ -77,7 +79,7 @@ export function PostCard(props: PostCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (deleting) return;
-    if (!confirm("Admin Action: Are you sure you want to delete this photograph from the platform?")) return;
+    if (!confirm(isAdmin ? "Admin Action: Delete this photograph from platform?" : "Are you sure you want to delete your photograph?")) return;
     setDeleting(true);
     try {
       await api.deletePost(id);
@@ -95,7 +97,7 @@ export function PostCard(props: PostCardProps) {
 
   return (
     <article className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm transition-colors hover:border-zinc-700/80 font-sans">
-      {/* Card Header: Author Bar & Admin Controls / Flag Button */}
+      {/* Card Header: Author Bar & Action Controls */}
       <div className="p-4 flex items-center justify-between border-b border-zinc-900">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2.5">
@@ -115,42 +117,56 @@ export function PostCard(props: PostCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Admin On-The-Spot Delete Button */}
-          {isAdmin && (
+          {/* Author Edit Button */}
+          {isAuthor && (
+            <Link
+              href={`/feed/${id}/edit`}
+              className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 hover:border-zinc-700 hover:text-white transition-all"
+              title="Edit your photograph details"
+            >
+              <Pencil className="w-3 h-3 text-zinc-400" />
+              <span>Edit</span>
+            </Link>
+          )}
+
+          {/* Author or Admin Delete Button */}
+          {(isAuthor || isAdmin) && (
             <button
               onClick={handleDelete}
               disabled={deleting}
               className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
-              title="Admin: Delete photograph on the spot"
+              title="Delete photograph"
             >
               <Trash2 className="w-3 h-3 text-rose-400" />
               <span>Delete</span>
             </button>
           )}
 
-          {/* Flag / Report Button */}
-          <button
-            onClick={handleFlag}
-            disabled={flagged || flagging}
-            className={`flex items-center gap-1 text-[11px] font-mono px-2 py-1 rounded-lg transition-all border ${
-              flagged
-                ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                : "text-zinc-500 hover:text-amber-400 hover:bg-zinc-900 border-transparent"
-            }`}
-            title={flagged ? "Flagged for Content Moderation Queue" : "Flag photograph for moderation"}
-          >
-            {flagged ? (
-              <>
-                <Check className="w-3 h-3 text-amber-400" />
-                <span>Flagged</span>
-              </>
-            ) : (
-              <>
-                <Flag className="w-3 h-3" />
-                <span>Flag</span>
-              </>
-            )}
-          </button>
+          {/* Community Flag / Report Button */}
+          {!isAuthor && (
+            <button
+              onClick={handleFlag}
+              disabled={flagged || flagging}
+              className={`flex items-center gap-1 text-[11px] font-mono px-2 py-1 rounded-lg transition-all border ${
+                flagged
+                  ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                  : "text-zinc-500 hover:text-amber-400 hover:bg-zinc-900 border-transparent"
+              }`}
+              title={flagged ? "Flagged for Content Moderation Queue" : "Flag photograph for moderation"}
+            >
+              {flagged ? (
+                <>
+                  <Check className="w-3 h-3 text-amber-400" />
+                  <span>Flagged</span>
+                </>
+              ) : (
+                <>
+                  <Flag className="w-3 h-3" />
+                  <span>Flag</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

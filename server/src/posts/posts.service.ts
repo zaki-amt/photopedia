@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PostsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAllFeed(category?: string, currentUserId?: string, feedType?: string) {
+  async findAllFeed(category?: string, feedType?: string, currentUserId?: string, search?: string) {
     let authorIdFilter: any = undefined;
 
     if (feedType === "following") {
@@ -20,10 +20,22 @@ export class PostsService {
       authorIdFilter = { in: followingIds };
     }
 
+    const searchFilter = search && search.trim() ? {
+      OR: [
+        { title: { contains: search.trim() } },
+        { caption: { contains: search.trim() } },
+        { category: { contains: search.trim() } },
+        { tags: { contains: search.trim() } },
+        { author: { name: { contains: search.trim() } } },
+        { author: { username: { contains: search.trim() } } },
+      ],
+    } : {};
+
     const where: any = {
       deletedAt: null,
       ...(category && category !== "All" ? { category } : {}),
       ...(authorIdFilter ? { authorId: authorIdFilter } : {}),
+      ...searchFilter,
     };
 
     const posts = await this.prisma.post.findMany({
@@ -259,5 +271,67 @@ export class PostsService {
       where: { id: postId },
       data: { deletedAt: new Date() },
     });
+  }
+
+  async updatePost(
+    postId: string,
+    userId: string,
+    userRole: string,
+    dto: {
+      title?: string;
+      caption?: string;
+      category?: string;
+      tags?: any;
+      camera?: string;
+      lens?: string;
+      aperture?: string;
+      shutter?: string;
+      iso?: string;
+    },
+  ) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: { exif: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Post ${postId} not found`);
+    }
+
+    if (userRole !== 'ADMIN' && post.authorId !== userId) {
+      throw new BadRequestException('Not authorized to edit this post');
+    }
+
+    let tagsString = post.tags;
+    if (Array.isArray(dto.tags)) {
+      tagsString = dto.tags.join(', ');
+    } else if (typeof dto.tags === 'string') {
+      tagsString = dto.tags;
+    }
+
+    const updatedPost = await this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        title: dto.title !== undefined ? dto.title : post.title,
+        caption: dto.caption !== undefined ? dto.caption : post.caption,
+        category: dto.category !== undefined ? dto.category : post.category,
+        tags: tagsString,
+      },
+    });
+
+    if (post.exif) {
+      await this.prisma.exifData.update({
+        where: { id: post.exif.id },
+        data: {
+          camera: dto.camera !== undefined ? dto.camera : post.exif.camera,
+          lens: dto.lens !== undefined ? dto.lens : post.exif.lens,
+          aperture: dto.aperture !== undefined ? dto.aperture : post.exif.aperture,
+          shutter: dto.shutter !== undefined ? dto.shutter : post.exif.shutter,
+          iso: dto.iso !== undefined ? dto.iso : post.exif.iso,
+        },
+      });
+    }
+
+    return updatedPost;
   }
 }

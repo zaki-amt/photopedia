@@ -42,10 +42,11 @@ export const api = {
     }),
 
   // Posts
-  getPosts: (category?: string, feed?: string) => {
+  getPosts: (category?: string, feed?: string, search?: string) => {
     const query = new URLSearchParams();
     if (category && category !== "All") query.append("category", category);
     if (feed) query.append("feed", feed);
+    if (search && search.trim()) query.append("search", search.trim());
     const queryString = query.toString();
     return fetchApi<any[]>(`/posts${queryString ? `?${queryString}` : ""}`);
   },
@@ -75,6 +76,12 @@ export const api = {
 
   deletePost: (id: string) =>
     fetchApi<any>(`/posts/${id}`, { method: "DELETE" }),
+
+  updatePost: (id: string, data: any) =>
+    fetchApi<any>(`/posts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 
   getTopCategories: () => fetchApi<any[]>("/posts/top-categories"),
 

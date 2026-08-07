@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -20,6 +21,7 @@ export class PostsController {
   async getFeed(
     @Query("category") category?: string,
     @Query("feed") feedType?: string,
+    @Query("search") search?: string,
     @Request() req?: any,
   ) {
     const authHeader = req?.headers?.authorization;
@@ -36,7 +38,7 @@ export class PostsController {
         // Optional auth
       }
     }
-    return this.postsService.findAllFeed(category, userId, feedType);
+    return this.postsService.findAllFeed(category, feedType, userId, search);
   }
 
   @Get('top-categories')
@@ -94,6 +96,27 @@ export class PostsController {
   ) {
     const userId = req?.user?.id;
     return this.postsService.flagPost(id, reason, userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Put(':id')
+  async updatePost(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body()
+    body: {
+      title?: string;
+      caption?: string;
+      category?: string;
+      tags?: string[];
+      camera?: string;
+      lens?: string;
+      aperture?: string;
+      shutter?: string;
+      iso?: string;
+    },
+  ) {
+    return this.postsService.updatePost(id, req.user.id, req.user.role, body);
   }
 
   @UseGuards(AuthGuard('jwt'))

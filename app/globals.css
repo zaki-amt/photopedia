@@ -71,3 +71,18 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #444444;
 }
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-effect {
+  background: linear-gradient(90deg, #09090b 25%, #18181b 37%, #09090b 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+}

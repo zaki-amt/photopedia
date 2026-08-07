@@ -13,9 +13,12 @@ import {
   Loader2,
   Flag,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { api } from "@/app/lib/api";
 import { LikeButton } from "@/app/components/LikeButton";
+import { PhotoLightboxModal } from "@/app/components/PhotoLightboxModal";
+import { Maximize2 } from "lucide-react";
 
 export default function SinglePostPage() {
   const params = useParams();
@@ -26,6 +29,9 @@ export default function SinglePostPage() {
 
   const [postDetails, setPostDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  const isAuthor = user && (user.username === postDetails?.author?.username || user.id === postDetails?.authorId);
 
   const [flagged, setFlagged] = useState(false);
   const [flagging, setFlagging] = useState(false);
@@ -207,14 +213,34 @@ export default function SinglePostPage() {
     <div className="max-w-6xl mx-auto space-y-6 pb-16 font-sans">
 
       {/* Main Full Hero Image Card */}
-      <div className="relative aspect-[21/9] w-full bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl">
+      <div
+        className="relative aspect-[21/9] w-full bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl group cursor-pointer"
+        onClick={() => setLightboxOpen(true)}
+        title="Click to view full photo"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={postDetails.image}
           alt={postDetails.title || "Photograph"}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-500"
         />
+        <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-zinc-800 text-white px-3.5 py-2 rounded-xl text-xs font-mono flex items-center gap-2 shadow-lg group-hover:bg-white group-hover:text-black transition-all">
+          <Maximize2 className="w-3.5 h-3.5" />
+          <span className="font-semibold">View Full Photo</span>
+        </div>
       </div>
+
+      <PhotoLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        image={postDetails.image}
+        title={postDetails.title}
+        category={postDetails.category}
+        authorName={postDetails.author?.name}
+        authorUsername={postDetails.author?.username}
+        exifCamera={postDetails.exif?.camera}
+        exifLens={postDetails.exif?.lens}
+      />
 
       {/* Content Columns: Left Details & Comments + Right Sidebar Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4">
@@ -246,30 +272,43 @@ export default function SinglePostPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {isAdmin && (
+              {isAuthor && (
+                <Link
+                  href={`/feed/${postId}/edit`}
+                  className="flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-lg bg-zinc-900 text-zinc-300 border border-zinc-800 hover:border-zinc-700 hover:text-white transition-all"
+                  title="Edit your photograph details"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </Link>
+              )}
+
+              {(isAuthor || isAdmin) && (
                 <button
                   onClick={handleDeletePost}
                   disabled={deleting}
                   className="flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
-                  title="Admin: Delete photograph on the spot"
+                  title="Delete photograph"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                   <span>Delete</span>
                 </button>
               )}
 
-              <button
-                onClick={handleFlag}
-                disabled={flagged || flagging}
-                className={`flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
-                  flagged
-                    ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                    : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 border-zinc-800"
-                }`}
-              >
-                <Flag className="w-3.5 h-3.5" />
-                <span>{flagged ? "Flagged for Moderation" : "Flag Photograph"}</span>
-              </button>
+              {!isAuthor && (
+                <button
+                  onClick={handleFlag}
+                  disabled={flagged || flagging}
+                  className={`flex items-center gap-1.5 font-mono text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                    flagged
+                      ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                      : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-900 border-zinc-800"
+                  }`}
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  <span>{flagged ? "Flagged for Moderation" : "Flag Photograph"}</span>
+                </button>
+              )}
             </div>
           </div>
 

@@ -92,9 +92,19 @@ export function SidebarCreators({
       </div>
 
       {loading ? (
-        <div className="py-6 text-center space-y-2">
-          <Loader2 className="w-5 h-5 text-white animate-spin mx-auto" />
-          <p className="text-[10px] font-mono text-zinc-500">Loading creators...</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full shimmer-effect shrink-0" />
+                <div className="space-y-1.5 min-w-0">
+                  <div className="w-24 h-3 rounded shimmer-effect" />
+                  <div className="w-16 h-2.5 rounded shimmer-effect" />
+                </div>
+              </div>
+              <div className="w-14 h-6 rounded-lg shimmer-effect shrink-0" />
+            </div>
+          ))}
         </div>
       ) : creators.length === 0 ? (
         <p className="text-xs text-zinc-500 py-2">No suggested creators found</p>
