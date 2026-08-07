@@ -34,7 +34,7 @@ export function useFeed() {
         }))
       );
 
-      const dbCreators = await api.getSuggestedCreators();
+      const dbCreators = await api.getSuggestedCreators(5);
       setCreators(dbCreators || []);
 
       if (user?.username) {

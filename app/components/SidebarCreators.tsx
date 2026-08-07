@@ -110,7 +110,7 @@ export function SidebarCreators({
         <p className="text-xs text-zinc-500 py-2">No suggested creators found</p>
       ) : (
         <div className="space-y-3">
-          {creators.map((creator) => {
+          {creators.slice(0, 5).map((creator) => {
             const isFollowing = !!(
               localFollowingMap[creator.id] || localFollowingMap[creator.username]
             );
