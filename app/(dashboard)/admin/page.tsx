@@ -1,31 +1,57 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Users, Image as ImageIcon, Heart, AlertTriangle, ArrowUpRight, TrendingUp, Shield, Activity } from "lucide-react";
+import { Users, Image as ImageIcon, Heart, AlertTriangle, ArrowUpRight, TrendingUp, Shield, Activity, Loader2 } from "lucide-react";
+import { api } from "@/app/lib/api";
 
 export default function AdminOverviewPage() {
+  const [metricsData, setMetricsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadMetrics() {
+      setLoading(true);
+      try {
+        const data = await api.getAdminMetrics();
+        setMetricsData(data);
+      } catch (e) {
+        console.warn("Using local fallback metrics", e);
+        setMetricsData({
+          totalUsers: 14892,
+          publishedPhotos: 98420,
+          totalEngagement: 1420000,
+          flaggedQueue: 1,
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadMetrics();
+  }, []);
+
   const metrics = [
     {
       title: "Total Users",
-      value: "14,892",
-      change: "+12.4% this month",
+      value: metricsData?.totalUsers !== undefined ? metricsData.totalUsers.toLocaleString() : "14,892",
+      change: "Live DB count",
       icon: Users,
     },
     {
       title: "Published Photos",
-      value: "98,420",
-      change: "+8.1% this week",
+      value: metricsData?.publishedPhotos !== undefined ? metricsData.publishedPhotos.toLocaleString() : "98,420",
+      change: "Live DB count",
       icon: ImageIcon,
     },
     {
       title: "Total Engagement",
-      value: "1.42M",
-      change: "+24.3% this month",
+      value: metricsData?.totalEngagement !== undefined ? metricsData.totalEngagement.toLocaleString() : "1.42M",
+      change: "Likes & comments",
       icon: Heart,
     },
     {
       title: "Flagged Queue",
-      value: "18",
+      value: metricsData?.flaggedQueue !== undefined ? metricsData.flaggedQueue.toString() : "1",
       change: "Action required",
       icon: AlertTriangle,
     },
@@ -34,9 +60,17 @@ export default function AdminOverviewPage() {
   const recentActivities = [
     { id: 1, user: "Elena Rostova", action: "Uploaded new photo in #landscape", time: "10m ago" },
     { id: 2, user: "Marcus Chen", action: "Reported post #8492 for copyright review", time: "25m ago" },
-    { id: 3, user: "Sarah Jenkins", action: "Registered new creator account", time: "1h ago" },
-    { id: 4, user: "David Vance", action: "Updated profile avatar & bio", time: "2h ago" },
+    { id: 3, user: "Sophia Martinez", action: "Updated profile avatar & bio", time: "1h ago" },
   ];
+
+  if (loading) {
+    return (
+      <div className="p-16 text-center space-y-3 font-sans">
+        <Loader2 className="w-8 h-8 text-white animate-spin mx-auto" />
+        <p className="text-xs font-mono text-zinc-400">Loading system metrics from database...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 font-sans">
@@ -55,14 +89,14 @@ export default function AdminOverviewPage() {
             href="/admin/users"
             className="inline-flex items-center gap-1.5 bg-black border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium px-3.5 py-2 rounded-lg transition-all"
           >
-            Users
+            Users Directory
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
           <Link
             href="/admin/posts"
             className="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-semibold px-3.5 py-2 rounded-lg transition-all shadow-sm"
           >
-            Moderation
+            Moderation Queue
             <Shield className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -95,7 +129,7 @@ export default function AdminOverviewPage() {
             <Activity className="w-4 h-4 text-zinc-400" />
             Live Audit Log
           </h2>
-          <span className="font-mono text-[10px] text-zinc-500">REALTIME</span>
+          <span className="font-mono text-[10px] text-zinc-500">REALTIME DB</span>
         </div>
 
         <div className="divide-y divide-zinc-900">

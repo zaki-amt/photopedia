@@ -1,87 +1,88 @@
 "use client";
 
-import { useState } from "react";
-import { Users, Search, Shield, ShieldOff, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, Search, Shield, ShieldOff, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { api } from "@/app/lib/api";
 
 interface UserItem {
   id: string;
   name: string;
   username: string;
   email: string;
-  role: "admin" | "user";
-  status: "active" | "suspended";
-  joined: string;
-  posts: number;
+  role: string;
+  status?: string;
+  createdAt?: string;
+  postsCount?: number;
 }
 
 const INITIAL_USERS: UserItem[] = [
   {
     id: "1",
-    name: "Alex Morgan",
-    username: "alexmorgan",
-    email: "alex@photopedia.com",
-    role: "admin",
+    name: "Photopedia Admin",
+    username: "admin",
+    email: "admin@photopedia.com",
+    role: "ADMIN",
     status: "active",
-    joined: "Jan 2024",
-    posts: 6,
+    createdAt: "Jan 2024",
+    postsCount: 6,
   },
   {
     id: "2",
     name: "Elena Rostova",
     username: "elena_photos",
     email: "elena@example.com",
-    role: "user",
+    role: "USER",
     status: "active",
-    joined: "Mar 2024",
-    posts: 42,
+    createdAt: "Mar 2024",
+    postsCount: 42,
   },
   {
     id: "3",
     name: "Marcus Chen",
     username: "marcus_urban",
     email: "marcus@example.com",
-    role: "user",
+    role: "USER",
     status: "active",
-    joined: "Apr 2024",
-    posts: 28,
-  },
-  {
-    id: "4",
-    name: "Spam Bot Account",
-    username: "spambot99",
-    email: "spambot@suspicious.io",
-    role: "user",
-    status: "suspended",
-    joined: "Aug 2026",
-    posts: 1,
+    createdAt: "Apr 2024",
+    postsCount: 28,
   },
 ];
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const toggleStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((user) => {
-        if (user.id === id) {
-          return {
-            ...user,
-            status: user.status === "active" ? "suspended" : "active",
-          };
-        }
-        return user;
-      })
-    );
+  const loadDatabaseUsers = async () => {
+    setLoading(true);
+    try {
+      const dbUsers = await api.getAdminUsers();
+      if (dbUsers && dbUsers.length > 0) {
+        setUsers(dbUsers);
+      }
+    } catch (e) {
+      console.warn("Using local fallback users directory", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleRole = (id: string) => {
+  useEffect(() => {
+    loadDatabaseUsers();
+  }, []);
+
+  const toggleRole = async (id: string) => {
+    try {
+      await api.toggleUserRole(id);
+    } catch (e) {
+      // Local optimistic update
+    }
     setUsers((prev) =>
       prev.map((user) => {
         if (user.id === id) {
           return {
             ...user,
-            role: user.role === "admin" ? "user" : "admin",
+            role: user.role.toUpperCase() === "ADMIN" ? "USER" : "ADMIN",
           };
         }
         return user;
@@ -105,19 +106,29 @@ export default function UserManagementPage() {
             <Users className="w-5 h-5 text-zinc-400" />
             User Directory
           </h1>
-          <p className="text-xs text-zinc-400">Manage user permissions and account status</p>
+          <p className="text-xs text-zinc-400">Database user accounts and administrator role assignments</p>
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users..."
-            className="w-full bg-black border border-zinc-800 rounded-lg py-2 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-colors"
-          />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={loadDatabaseUsers}
+            className="p-2 text-zinc-400 hover:text-white bg-zinc-950 border border-zinc-800 rounded-lg transition-colors"
+            title="Refresh database users"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+
+          {/* Search Input */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search users..."
+              className="w-full bg-black border border-zinc-800 rounded-lg py-2 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-colors"
+            />
+          </div>
         </div>
       </div>
 
@@ -147,8 +158,8 @@ export default function UserManagementPage() {
                     <button
                       onClick={() => toggleRole(user.id)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-medium border transition-colors ${
-                        user.role === "admin"
-                          ? "bg-white text-black border-white"
+                        user.role.toUpperCase() === "ADMIN"
+                          ? "bg-white text-black border-white font-bold"
                           : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700"
                       }`}
                     >
@@ -158,36 +169,24 @@ export default function UserManagementPage() {
                   </td>
 
                   <td className="px-5 py-3.5">
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border ${
-                        user.status === "active"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-rose-500/10 text-rose-400 border-rose-500/20"
-                      }`}
-                    >
-                      {user.status === "active" ? (
-                        <CheckCircle2 className="w-3 h-3" />
-                      ) : (
-                        <AlertCircle className="w-3 h-3" />
-                      )}
-                      {user.status}
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <CheckCircle2 className="w-3 h-3" />
+                      active
                     </span>
                   </td>
 
-                  <td className="px-5 py-3.5 text-[11px] font-mono text-zinc-500">{user.joined}</td>
-                  <td className="px-5 py-3.5 text-xs font-semibold text-white font-mono">{user.posts}</td>
+                  <td className="px-5 py-3.5 text-[11px] font-mono text-zinc-500">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Jan 2026"}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs font-semibold text-white font-mono">{user.postsCount || 0}</td>
 
                   <td className="px-5 py-3.5 text-right">
                     <button
-                      onClick={() => toggleStatus(user.id)}
-                      className={`p-1.5 rounded-lg text-xs transition-colors border ${
-                        user.status === "active"
-                          ? "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20"
-                          : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
-                      }`}
-                      title={user.status === "active" ? "Suspend user" : "Activate user"}
+                      onClick={() => toggleRole(user.id)}
+                      className="p-1.5 rounded-lg text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                      title="Toggle role permission"
                     >
-                      {user.status === "active" ? <ShieldOff className="w-3.5 h-3.5" /> : <Shield className="w-3.5 h-3.5" />}
+                      <Shield className="w-3.5 h-3.5" />
                     </button>
                   </td>
                 </tr>

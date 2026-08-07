@@ -28,7 +28,7 @@ export class PostsService {
       image: post.image,
       caption: post.caption,
       category: post.category,
-      tags: post.tags,
+      tags: post.tags ? post.tags.split(',').map((t) => t.trim()) : [],
       author: post.author,
       exif: post.exif,
       likes: post._count.likes,
@@ -63,6 +63,7 @@ export class PostsService {
 
     return {
       ...post,
+      tags: post.tags ? post.tags.split(',').map((t) => t.trim()) : [],
       likesCount: post._count.likes,
     };
   }
@@ -72,20 +73,22 @@ export class PostsService {
     image: string;
     caption?: string;
     category: string;
-    tags?: string[];
+    tags?: string | string[];
     camera?: string;
     lens?: string;
     aperture?: string;
     shutter?: string;
     iso?: string;
   }) {
+    const tagsString = Array.isArray(dto.tags) ? dto.tags.join(', ') : dto.tags || '';
+
     return this.prisma.post.create({
       data: {
         title: dto.title,
         image: dto.image,
         caption: dto.caption,
         category: dto.category,
-        tags: dto.tags || [],
+        tags: tagsString,
         authorId: userId,
         exif: {
           create: {

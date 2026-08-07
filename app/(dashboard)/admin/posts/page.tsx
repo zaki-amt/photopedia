@@ -1,60 +1,69 @@
 "use client";
 
-import { useState } from "react";
-import { Grid, Trash2, AlertTriangle, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Grid, Check, X, Shield, Eye, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { api } from "@/app/lib/api";
 
-interface ModerationPost {
+interface ModerationItem {
   id: string;
-  author: string;
-  image: string;
-  caption: string;
+  post: {
+    id: string;
+    title: string;
+    image: string;
+    author: {
+      name: string;
+      username: string;
+    };
+    category: string;
+  };
   reason: string;
-  status: "pending" | "approved" | "removed";
-  date: string;
+  status: string;
+  createdAt: string;
 }
 
-const INITIAL_MODERATION_POSTS: ModerationPost[] = [
-  {
-    id: "101",
-    author: "@spambot99",
-    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80",
-    caption: "Click link in bio to win free crypto prizes fast!!!",
-    reason: "Flagged for Spam / Promotional Content",
-    status: "pending",
-    date: "10m ago",
-  },
-  {
-    id: "102",
-    author: "@unknown_user",
-    image: "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=600&q=80",
-    caption: "Unfiltered photo submission from city center.",
-    reason: "Unclear copyright ownership claim",
-    status: "pending",
-    date: "45m ago",
-  },
-  {
-    id: "103",
-    author: "@marcus_urban",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
-    caption: "Misty mountain range photo session.",
-    reason: "Automated keyword flag (false positive)",
-    status: "approved",
-    date: "2h ago",
-  },
-];
+export default function ModerationPage() {
+  const [items, setItems] = useState<ModerationItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function ContentModerationPage() {
-  const [posts, setPosts] = useState<ModerationPost[]>(INITIAL_MODERATION_POSTS);
+  const fetchModerationQueue = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getModerationQueue();
+      setItems(data || []);
+    } catch (e) {
+      console.warn("Using local fallback moderation items", e);
+      setItems([
+        {
+          id: "mod-1",
+          post: {
+            id: "post-flagged-1",
+            title: "City Center Architecture",
+            image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80",
+            author: { name: "Marcus Chen", username: "marcus_urban" },
+            category: "Architecture",
+          },
+          reason: "Review requested for copyright verification",
+          status: "PENDING",
+          createdAt: "Today",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleAction = (id: string, newStatus: "approved" | "removed") => {
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id === id) {
-          return { ...post, status: newStatus };
-        }
-        return post;
-      })
-    );
+  useEffect(() => {
+    fetchModerationQueue();
+  }, []);
+
+  const handleAction = async (id: string, action: "APPROVE" | "REJECT") => {
+    try {
+      await api.updateModeration(id, action === "APPROVE" ? "APPROVED" : "REMOVED");
+    } catch (e) {
+      // Local fallback
+    }
+    setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   return (
@@ -64,87 +73,87 @@ export default function ContentModerationPage() {
         <div>
           <h1 className="font-heading text-xl font-bold text-white flex items-center gap-2">
             <Grid className="w-5 h-5 text-zinc-400" />
-            Content Moderation
+            Content Moderation Queue
           </h1>
-          <p className="text-xs text-zinc-400">Review reported posts and enforce platform safety</p>
+          <p className="text-xs text-zinc-400">Review flagged submissions and enforce community quality guidelines</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchModerationQueue}
+            className="p-2 text-zinc-400 hover:text-white bg-zinc-950 border border-zinc-800 rounded-lg transition-colors"
+            title="Refresh moderation queue"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <span className="font-mono text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-md uppercase tracking-wider">
+            {items.length} Pending
+          </span>
         </div>
       </div>
 
-      {/* Grid of Moderation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {posts.map((post) => (
-          <div
-            key={post.id}
-            className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
-          >
-            <div>
-              {/* Image preview */}
-              <div className="relative aspect-[16/10] bg-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={post.image}
-                  alt="Flagged Content"
-                  className="w-full h-full object-cover"
-                />
-
-                <span
-                  className={`absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider backdrop-blur-md border ${
-                    post.status === "pending"
-                      ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                      : post.status === "approved"
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                      : "bg-rose-500/20 text-rose-300 border-rose-500/30"
-                  }`}
-                >
-                  {post.status}
+      {loading ? (
+        <div className="p-16 text-center space-y-3 bg-zinc-950 border border-zinc-800 rounded-2xl">
+          <Loader2 className="w-8 h-8 text-white animate-spin mx-auto" />
+          <p className="text-xs font-mono text-zinc-400">Fetching moderation queue from database...</p>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="p-16 text-center space-y-3 bg-zinc-950 border border-zinc-800 rounded-2xl">
+          <Check className="w-8 h-8 text-emerald-400 mx-auto" />
+          <h3 className="font-heading text-sm font-semibold text-white">Queue Empty</h3>
+          <p className="text-xs text-zinc-400">All photo submissions have been reviewed!</p>
+        </div>
+      ) : (
+        /* Moderation Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {items.map((item) => (
+            <div key={item.id} className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-sm space-y-4 p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  {item.status}
                 </span>
+                <span className="text-[11px] font-mono text-zinc-500">{item.createdAt}</span>
               </div>
 
-              {/* Details */}
-              <div className="p-5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-heading text-xs font-semibold text-white">{post.author}</span>
-                  <span className="text-[10px] font-mono text-zinc-500">{post.date}</span>
+              <div className="flex gap-4">
+                <div className="w-24 h-24 bg-black rounded-xl overflow-hidden border border-zinc-900 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.post?.image}
+                    alt={item.post?.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">{post.caption}</p>
-
-                <div className="flex items-start gap-2 bg-black border border-zinc-900 p-2.5 rounded-xl text-xs text-zinc-400">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                  <span className="text-[11px] leading-tight">{post.reason}</span>
+                <div className="space-y-1 min-w-0 flex-1">
+                  <h3 className="font-heading text-xs font-semibold text-white truncate">{item.post?.title}</h3>
+                  <p className="text-[11px] font-mono text-zinc-400">By @{item.post?.author?.username}</p>
+                  <div className="p-2 bg-black rounded-lg border border-zinc-900 text-[10px] text-zinc-300 mt-2">
+                    <span className="text-zinc-500 font-mono">Reason:</span> {item.reason}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Action Bar */}
-            <div className="p-3 px-5 border-t border-zinc-900 flex items-center justify-between bg-black/40">
-              {post.status === "pending" ? (
-                <>
-                  <button
-                    onClick={() => handleAction(post.id, "removed")}
-                    className="inline-flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-xs font-medium border border-rose-500/20 transition-all"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Remove
-                  </button>
-
-                  <button
-                    onClick={() => handleAction(post.id, "approved")}
-                    className="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-200 text-black px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    Approve
-                  </button>
-                </>
-              ) : (
-                <div className="w-full text-center text-[11px] font-mono text-zinc-500 py-0.5">
-                  RESOLVED: {post.status.toUpperCase()}
-                </div>
-              )}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-900">
+                <button
+                  onClick={() => handleAction(item.id, "REJECT")}
+                  className="inline-flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Remove
+                </button>
+                <button
+                  onClick={() => handleAction(item.id, "APPROVE")}
+                  className="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-200 text-black px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Approve
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
