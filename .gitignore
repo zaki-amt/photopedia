@@ -1,0 +1,28 @@
+# dependencies
+/node_modules
+/server/node_modules
+/.pnpm
+/.yarn
+
+# Next.js build output
+/.next/
+/out/
+
+# NestJS build output
+/server/dist/
+
+# Environment files
+.env
+.env*.local
+server/.env
+
+# TypeScript / Prisma cache
+*.tsbuildinfo
+next-env.d.ts
+/server/src/generated
+
+# OS & IDE junk
+.DS_Store
+*.pem
+.vscode/
+.idea/
