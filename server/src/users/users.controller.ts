@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -17,8 +18,9 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('suggested')
-  async getSuggested() {
-    return this.usersService.getSuggestedCreators();
+  async getSuggested(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    return this.usersService.getSuggestedCreators(undefined, limitNum);
   }
 
   @UseGuards(AuthGuard('jwt'))

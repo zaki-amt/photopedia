@@ -242,14 +242,14 @@ export class UsersService {
     return follows.map((f) => f.followingId);
   }
 
-  async getSuggestedCreators(currentUserId?: string) {
+  async getSuggestedCreators(currentUserId?: string, limit?: number) {
     return this.prisma.user.findMany({
       where: {
         deletedAt: null,
         role: "USER",
         ...(currentUserId ? { NOT: { id: currentUserId } } : {}),
       },
-      take: 5,
+      ...(limit ? { take: limit } : {}),
       select: {
         id: true,
         name: true,

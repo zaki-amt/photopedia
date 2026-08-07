@@ -33,7 +33,7 @@ export function SidebarCreators({
     if (!propsCreators) {
       async function loadCreators() {
         try {
-          const data = await api.getSuggestedCreators();
+          const data = await api.getSuggestedCreators(5);
           setCreators(data || []);
         } catch (e) {
           setCreators([]);

@@ -106,7 +106,8 @@ export const api = {
 
   getFollowing: (username: string) => fetchApi<any[]>(`/users/${username}/following`),
 
-  getSuggestedCreators: () => fetchApi<any[]>("/users/suggested"),
+  getSuggestedCreators: (limit?: number) =>
+    fetchApi<any[]>(`/users/suggested${limit ? `?limit=${limit}` : ""}`),
 
   // Admin
   getAdminMetrics: () => fetchApi<any>("/admin/metrics"),
