@@ -33,7 +33,7 @@ export default function EditProfilePage() {
     username: user?.username || "",
     email: user?.email || "",
     avatar: user?.avatar || "/avatar.jpg",
-    coverImage: (user as any)?.coverImage || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80",
+    coverImage: (user as any)?.coverImage || "/cover.jpg",
     bio: user?.bio || "Landscape & outdoor photographer documenting natural light reflections.",
     location: (user as any)?.location || "San Francisco, CA",
     website: (user as any)?.website || "https://photopedia.com",
