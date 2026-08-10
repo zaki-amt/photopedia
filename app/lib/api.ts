@@ -41,6 +41,35 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // Media Upload
+  uploadMedia: async (file: File, folder: string = "photos") => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("photopedia_token") : null;
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+
+    const response = await fetch(`${API_BASE_URL}/media/upload`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Failed to upload media file");
+    }
+
+    return response.json() as Promise<{
+      url: string;
+      key: string;
+      filename: string;
+      size: number;
+      mimetype: string;
+    }>;
+  },
+
   // Posts
   getPosts: (category?: string, feed?: string, search?: string) => {
     const query = new URLSearchParams();

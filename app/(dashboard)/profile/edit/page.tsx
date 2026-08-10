@@ -20,6 +20,7 @@ import {
   Layers,
   Sparkles,
   Aperture,
+  Upload,
 } from "lucide-react";
 import { api } from "@/app/lib/api";
 
@@ -113,9 +114,31 @@ export default function EditProfilePage() {
             {/* Avatar & Cover URLs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono font-medium text-zinc-400 uppercase tracking-wider">
-                  Avatar Image URL
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-mono font-medium text-zinc-400 uppercase tracking-wider">
+                    Avatar Image
+                  </label>
+                  <label className="text-[10px] font-mono text-zinc-300 hover:text-white cursor-pointer flex items-center gap-1 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md hover:border-zinc-700 transition-all">
+                    <Upload className="w-3 h-3" />
+                    <span>Upload Local</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const res = await api.uploadMedia(file, "avatars");
+                            setFormData((prev) => ({ ...prev, avatar: res.url }));
+                          } catch (err) {
+                            alert("Failed to upload avatar to local storage server");
+                          }
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
                 <div className="relative">
                   <ImageIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input

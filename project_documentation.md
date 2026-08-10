@@ -4,12 +4,13 @@
 
 ## 1. System Overview & Architecture
 
-**Photopedia** is a high-performance, full-stack photography platform built for visual storytellers, photography creators, and curators. It features uncompressed photo feeds, real-time universal search, full-screen photo lightbox viewports, camera EXIF metadata tracking, dynamic category archives, public creator portfolios, follower/following archives, author content editing controls, support contact desk, and platform administrator moderation controls.
+**Photopedia** is a high-performance, full-stack photography platform built for visual storytellers, photography creators, and curators. It features uncompressed photo feeds, real-time universal search, a multi-provider media uploader architecture (Local Storage, Cloudflare R2, AWS S3, DigitalOcean Spaces), full-screen photo lightbox viewports, camera EXIF metadata tracking, dynamic category archives, public creator portfolios, follower/following archives, author content editing controls, support contact desk, and platform administrator moderation controls.
 
 ### Technical Stack
 
 - **Frontend**: Next.js 16 (App Router with Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons.
 - **Backend**: NestJS (Modular Architecture), Express, Passport JWT Authentication, Prisma ORM.
+- **Media Storage Engine**: Standardized `IStorageProvider` interface with dynamic `STORAGE_PROVIDER` token supporting Local Storage, Cloudflare R2, AWS S3, and DigitalOcean Spaces.
 - **Database**: SQLite (`dev.db`) managed with Prisma ORM migrations and studio GUI.
 - **Styling**: Vercel/Framer-inspired dark mode aesthetic (monochrome black/white palette, `bg-black`, `bg-zinc-950`, `border-zinc-800`).
 
@@ -53,11 +54,11 @@ photopedia/
 │   │   │   │   └── edit/
 │   │   │       └── page.tsx      # Author Edit Photograph Form (Title, Caption, Category, EXIF)
 │   │   │   └── new/
-│   │   │       └── page.tsx          # Publish Photograph Form (Database persistence + EXIF)
+│   │   │       └── page.tsx          # Publish Form with Drag & Drop Local Media Uploader
 │   │   ├── profile/                  # User Profile Management
 │   │   │   ├── page.tsx              # User Personal Profile Page
 │   │   │   └── edit/
-│   │   │       └── page.tsx          # Edit Profile Form (Avatar, Bio, Camera Gear)
+│   │   │       └── page.tsx          # Edit Profile Form with Local Avatar Photo Uploader
 │   │   ├── support/                  # Support Desk & Appeal Form
 │   │   │   └── page.tsx              # Public Support & Contact Desk Page
 │   │   └── layout.tsx                # Vercel/Framer Styled Sidebar with Real-Time Search Bar
@@ -79,15 +80,30 @@ photopedia/
 │   │   ├── useFollowList.ts          # Fetch Followers & Following Lists Hook
 │   │   └── useFeed.ts                # Feed Tab Switcher, Search Query & Data Fetching Hook
 │   └── lib/
-│       └── api.ts                    # Centralized Axios API Client
+│       └── api.ts                    # Centralized Axios API Client with uploadMedia method
 ├── server/                           # NestJS Backend API Server
 │   ├── prisma/
 │   │   ├── schema.prisma             # Optimized Prisma Database Schema
 │   │   ├── dev.db                    # SQLite Database File
 │   │   └── seed.ts                   # Full Seeding Script (20 Creators + 29 Verified Photos)
+│   ├── uploads/                      # Local Media Asset Storage Directory
 │   └── src/
 │       ├── admin/                    # Admin Moderation Module (Overview, Users, Categories, Flagged)
 │       ├── auth/                     # JWT Authentication & Passport Strategy Module (Blocked User Guard)
+│       ├── media/                    # Media Module & Storage Interface Contracts
+│       │   ├── media.controller.ts   # POST /media/upload, GET /media/url/*, DELETE /media/:key
+│       │   ├── media.service.ts      # Media validation (MIME, 15MB limit) & storage delegation
+│       │   ├── media.module.ts       # NestJS Media Module
+│       │   ├── dto/
+│       │   │   ├── upload-media.dto.ts
+│       │   │   └── complete-upload.dto.ts
+│       │   └── storage/
+│       │       ├── storage.interface.ts # IStorageProvider interface contract
+│       │       ├── storage.module.ts    # Dynamic STORAGE_PROVIDER token binding
+│       │       ├── local.storage.ts     # Local Storage Provider (saves to /uploads)
+│       │       ├── r2.storage.ts        # Cloudflare R2 Provider contract
+│       │       ├── s3.storage.ts        # AWS S3 Provider contract
+│       │       └── spaces.storage.ts    # DigitalOcean Spaces Provider contract
 │       ├── posts/                    # Posts Module (Feed filtering, Real-Time Search, Likes, Comments, EXIF, Edit, Delete, Flag)
 │       ├── users/                    # Users Module (Follow/Unfollow, Followers, Following, Suggested)
 │       └── prisma/                   # Prisma ORM Global Module
@@ -97,6 +113,11 @@ photopedia/
 ---
 
 ## 3. Core Modules & Endpoints
+
+### Media Module (`/media`)
+- `POST /media/upload` — Uploads image file (`file`) to storage provider (Local Storage `/uploads/`, R2, S3, or Spaces).
+- `GET /media/url/*` — Resolves public URL for specified media key.
+- `DELETE /media/:key` — Deletes media file from storage provider.
 
 ### Auth Module (`/auth`)
 - `POST /auth/register` — Registers a new user.
@@ -110,10 +131,10 @@ photopedia/
 - `GET /users/me/following-ids` — Returns array of followed user IDs.
 - `GET /users/:username/followers` — Returns list of followers.
 - `GET /users/:username/following` — Returns list of following users.
-- `GET /users/suggested` — Returns suggested creators directory (Excludes `ADMIN` role users).
+- `GET /users/suggested?limit=5` — Returns suggested creators directory.
 
 ### Posts Module (`/posts`)
-- `GET /posts?category=...&feed=...&search=...` — Returns photograph feed (supports `feed=following` and real-time substring search across title, caption, tags, category, and author name/username).
+- `GET /posts?category=...&feed=...&search=...` — Returns photograph feed.
 - `GET /posts/:id` — Returns single post with author, EXIF, and comments.
 - `POST /posts` — Creates a new post with EXIF camera details.
 - `PUT /posts/:id` — Updates post details & EXIF metadata (Author or Admin only).
@@ -122,22 +143,12 @@ photopedia/
 - `POST /posts/:id/comment` — Adds a comment to a post.
 - `POST /posts/:id/flag` — Flags post for Content Moderation Queue.
 
-### Admin Module (`/admin`)
-- `GET /admin/metrics` — Returns live platform overview metrics & activity logs.
-- `GET /admin/users` — Returns user directory with roles and block status.
-- `POST /admin/users/:id/role` — Toggles user role (`ADMIN` ↔ `USER`).
-- `POST /admin/users/:id/status` — Toggles user block status (`ACTIVE` ↔ `BLOCKED`).
-- `DELETE /admin/users/:id` — Soft-deletes user account.
-- `GET /admin/moderation` — Returns flagged posts queue.
-- `POST /admin/moderation/:id` — Approves or removes flagged post.
-
 ---
 
-## 4. UI Architecture & Design Guidelines
+## 4. Storage Engine Architecture
 
-1. **Framer/Vercel Aesthetic**: High-contrast monochrome palette, subtle borders (`border-zinc-800`), glassmorphic backdrop blurs, and clean typography.
-2. **Full-Screen Photo Lightbox**: Interactive viewport modal (`PhotoLightboxModal`) with uncompressed aspect fit, EXIF camera readout, keyboard shortcuts, and original URL export.
-3. **Animated Shimmer Loaders**: Vercel-style CSS `@keyframes shimmer` skeleton loading states (`PostCardSkeleton`, `SidebarCreatorsSkeleton`, `SidebarCategoriesSkeleton`) for smooth visual feedback.
-4. **Real-Time Search Bar**: Top sidebar search bar input routing queries to `/feed?search=query` with active filter badges and one-click reset controls.
-5. **Atomic Single-Responsibility Components**: UI logic separated into dedicated components (`UserAvatar`, `UserNameLink`, `LikeButton`, `FollowButton`, `UserListItem`, `FollowersFollowingModal`).
-6. **Custom Hooks for Business Logic**: State and network interactions managed cleanly inside `useLike`, `useFollow`, `useFollowList`, and `useFeed`.
+- **Single Interface Contract**: All storage implementations adhere strictly to `IStorageProvider`:
+  - `uploadFile(file: StorageFile, destinationFolder?: string): Promise<StorageUploadResult>`
+  - `deleteFile(key: string): Promise<boolean>`
+  - `getPublicUrl(key: string): Promise<string>`
+- **Switching Storage Providers**: Configured dynamically via `STORAGE_DRIVER` environment variable (`local` | `r2` | `s3` | `spaces`).

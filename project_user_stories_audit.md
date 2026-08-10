@@ -83,28 +83,12 @@
 
 ---
 
-## Epic 5: Every Button & Interaction Scenario
+## Epic 5: Media Uploader & Storage Engine
 
-### US-10: Feed & Post Interactions
-- **Story**: Liking/unliking fills/unfills heart icon, updates counter in DB `$transaction`, posting comment appends instantly to thread, clicking post card opens `/feed/[id]`, clicking category badge opens `/category/[slug]`.
-- **Status**: ✅ **VERIFIED** — Like heart fills (`fill-rose-500 text-rose-500`), like count persists across refreshes, comments append instantly.
-
-### US-11: Publish Photograph Flow (`/feed/new`)
-- **Story**: Submitting title, caption, category, image URL, and EXIF parameters saves to database and renders post in feed immediately with working buttons.
-- **Status**: ✅ **VERIFIED** — `POST /posts` saves post + EXIF parameters and prepends to feed list.
-
-### US-12: Profile Editing & Cancel Controls
-- **Story**: Edit profile form pre-fills database values, saving updates profile across app, cancel button returns without saving.
-- **Status**: ✅ **VERIFIED** — Pre-fills data and saves directly to database.
-
-### US-13: Community Flagging Flow
-- **Story**: As a user or visitor, I want a Flag / Report button on posts to report inappropriate photos and send them to the Content Moderation Queue.
-- **Implementation**: `PostCard.tsx`, `SinglePostPage.tsx`, `server/src/posts/posts.service.ts`.
-- **Status**: ✅ **VERIFIED** — Clicking Flag calls `POST /posts/:id/flag` and creates `ModerationLog` record.
-
-### US-14: Navigation & Sidebar Integrity
-- **Story**: Every category link in `SidebarCategories` and creator link in `SidebarCreators` navigates correctly without 404s.
-- **Status**: ✅ **VERIFIED** — Sidebar links bound to `/category/[slug]` and `/creators/[username]`.
+### US-29: Multi-Storage Local & Cloud Media Uploader Architecture
+- **Story**: As a creator or platform user, I want to drag & drop or upload image files directly from my local device, store them in the backend `/uploads` directory (or Cloudflare R2, AWS S3, DigitalOcean Spaces), and preview the rendered assets immediately.
+- **Implementation**: `server/src/media/`, `app/lib/api.ts`, `app/(dashboard)/feed/new/page.tsx`, `app/(dashboard)/profile/edit/page.tsx`.
+- **Status**: ✅ **VERIFIED** — Drag & drop / file selection uploads to `POST /media/upload`, stores files in `server/uploads/photos/` (or R2/S3/Spaces via `STORAGE_DRIVER`), serves static assets at `http://localhost:4000/uploads/...`, and previews uploaded photos in real time.
 
 ---
 
@@ -163,8 +147,8 @@
 | **Epic 2: Profile Data Accuracy** | US-04, US-05, US-06 | ✅ **Passed** | 100% (3/3) |
 | **Epic 3: Permalinks & Navigation** | US-07, US-08, US-09 | ✅ **Passed** | 100% (3/3) |
 | **Epic 4: Search, Lightbox & UX Polish** | US-26, US-27, US-28 | ✅ **Passed** | 100% (3/3) |
-| **Epic 5: Button & Interaction Scenarios** | US-10, US-11, US-12, US-13, US-14 | ✅ **Passed** | 100% (5/5) |
+| **Epic 5: Media Uploader & Storage Engine** | US-29 | ✅ **Passed** | 100% (1/1) |
 | **Epic 6: User Content Management** | US-19, US-20 | ✅ **Passed** | 100% (2/2) |
 | **Epic 7: Platform Admin Controls** | US-21, US-22, US-23, US-24 | ✅ **Passed** | 100% (4/4) |
 | **Epic 8: Verified Data Seeding** | US-25 | ✅ **Passed** | 100% (1/1) |
-| **Total Platform Compliance** | **US-01 to US-28** | ✅ **Passed** | **100% (28/28)** |
+| **Total Platform Compliance** | **US-01 to US-29** | ✅ **Passed** | **100% (29/29)** |
