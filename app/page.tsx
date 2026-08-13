@@ -63,6 +63,7 @@ export default function Home() {
     setUser(null);
     setUserMenuOpen(false);
   };
+  // Top Creators Data
 
   // Hero Featured Slides Data
   const HERO_SLIDES = [
@@ -208,7 +209,7 @@ export default function Home() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"}
+                  src={user.avatar || "/avtar.jpg"}
                   alt={user.name}
                   className="w-7 h-7 rounded-full object-cover border border-zinc-700"
                 />

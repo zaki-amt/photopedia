@@ -4,7 +4,7 @@
 
 ## 1. System Overview & Architecture
 
-**Photopedia** is a high-performance, full-stack photography platform built for visual storytellers, photography creators, and curators. It features uncompressed photo feeds, real-time universal search, a multi-provider media uploader architecture (Local Storage, Cloudflare R2, AWS S3, DigitalOcean Spaces), full-screen photo lightbox viewports, camera EXIF metadata tracking, dynamic category archives, public creator portfolios, follower/following archives, author content editing controls, support contact desk, and platform administrator moderation controls.
+**Photopedia** is a high-performance, full-stack photography platform built for visual storytellers, photography creators, and curators. It features uncompressed photo feeds, real-time universal search, a multi-provider media uploader architecture (Local Storage, Cloudflare R2, AWS S3, DigitalOcean Spaces), full-screen photo lightbox viewports, camera EXIF metadata tracking, dynamic category archives, public creator portfolios, follower/following archives, author content editing controls, support contact desk, platform administrator moderation controls, and a dedicated LAMP-to-Modern-Stack learning guide (`PROJECT_GUIDE.md`).
 
 ### Technical Stack
 
@@ -13,6 +13,7 @@
 - **Media Storage Engine**: Standardized `IStorageProvider` interface with dynamic `STORAGE_PROVIDER` token supporting Local Storage, Cloudflare R2, AWS S3, and DigitalOcean Spaces.
 - **Database**: SQLite (`dev.db`) managed with Prisma ORM migrations and studio GUI.
 - **Styling**: Vercel/Framer-inspired dark mode aesthetic (monochrome black/white palette, `bg-black`, `bg-zinc-950`, `border-zinc-800`).
+- **Learning Guide**: Complete 21-section step-by-step developer course guide (`PROJECT_GUIDE.md`).
 
 ---
 
@@ -41,7 +42,7 @@ photopedia/
 │   │   │   └── [slug]/
 │   │   │       └── page.tsx          # Dynamic Category Archive (e.g. /category/landscape)
 │   │   ├── creators/                 # Public Creator Network
-│   │   │   ├── page.tsx              # Public Creators Directory Page
+│   │   │   ├── page.tsx              # Public Creators Directory Page (Loads all 21 creators)
 │   │   │   └── [username]/
 │   │   │       └── page.tsx          # Public Creator Profile Archive Page (Clickable Metrics Modal)
 │   │   ├── feed/                     # Feed & Photograph Views
@@ -67,7 +68,7 @@ photopedia/
 │   │   ├── PhotoLightboxModal.tsx    # Full-Screen Photo Lightbox Modal Viewport
 │   │   ├── PostCardSkeleton.tsx      # Animated Shimmer Skeleton Loading Component
 │   │   ├── SidebarCategories.tsx     # Top Categories Widget with Shimmer Loaders & VIEW ALL Link
-│   │   ├── SidebarCreators.tsx       # Suggested Creators Widget Component (Self-Syncing Follow State & Shimmer)
+│   │   ├── SidebarCreators.tsx       # Suggested Creators Widget Component (Strict limit=5 & Shimmer)
 │   │   ├── UserAvatar.tsx            # Reusable Avatar Component with Universal Fallback
 │   │   ├── UserNameLink.tsx          # Reusable Author Permalink Component (/creators/[username])
 │   │   ├── LikeButton.tsx            # Red Filled Heart Like Button Component
@@ -107,6 +108,8 @@ photopedia/
 │       ├── posts/                    # Posts Module (Feed filtering, Real-Time Search, Likes, Comments, EXIF, Edit, Delete, Flag)
 │       ├── users/                    # Users Module (Follow/Unfollow, Followers, Following, Suggested)
 │       └── prisma/                   # Prisma ORM Global Module
+├── PROJECT_GUIDE.md                  # Comprehensive LAMP/WordPress to Modern Stack Learning Guide
+├── project_user_stories_audit.md     # Audit Checklist (30 User Stories Passed)
 └── project_documentation.md         # Master System Guide
 ```
 
@@ -131,10 +134,10 @@ photopedia/
 - `GET /users/me/following-ids` — Returns array of followed user IDs.
 - `GET /users/:username/followers` — Returns list of followers.
 - `GET /users/:username/following` — Returns list of following users.
-- `GET /users/suggested?limit=5` — Returns suggested creators directory.
+- `GET /users/suggested?limit=5` — Returns suggested creators directory (supports optional `limit` parameter).
 
 ### Posts Module (`/posts`)
-- `GET /posts?category=...&feed=...&search=...` — Returns photograph feed.
+- `GET /posts?category=...&feed=...&search=...` — Returns photograph feed (supports substring search across title, caption, tags, category, author name/username).
 - `GET /posts/:id` — Returns single post with author, EXIF, and comments.
 - `POST /posts` — Creates a new post with EXIF camera details.
 - `PUT /posts/:id` — Updates post details & EXIF metadata (Author or Admin only).

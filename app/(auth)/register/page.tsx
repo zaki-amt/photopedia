@@ -21,7 +21,7 @@ export default function RegisterPage() {
       const token = localStorage.getItem("photopedia_token");
       const user = localStorage.getItem("photopedia_user");
       if (token && user) {
-        router.push("/");
+        router.push("/feed");
       }
     }
   }, [router]);
@@ -48,7 +48,7 @@ export default function RegisterPage() {
         localStorage.setItem("photopedia_user", JSON.stringify(data.user));
       }
       setLoading(false);
-      router.push("/");
+      router.push("/feed");
     } catch (err: any) {
       console.warn("Backend API registration error/fallback:", err.message);
 

@@ -130,12 +130,17 @@
 
 ---
 
-## Epic 8: Full-Scale Verified Data Seeding
+## Epic 8: Developer Learning & Project Architecture
 
 ### US-25: High-Resolution Unsplash Seeding with EXIF & Social Layers
 - **Story**: As a platform developer, I want a seed script that preserves Admin and Elena, creates 20 realistic photography creators, and seeds 29 verified high-resolution Unsplash photos with EXIF data, follows, likes, and comments.
 - **Implementation**: `server/prisma/seed.ts`.
 - **Status**: ✅ **VERIFIED** — `npx ts-node prisma/seed.ts` seeds 22 users, 29 verified photos, 139 follows, 328 likes, and 132 comments.
+
+### US-30: LAMP to Modern Stack Learning & Architecture Guide (`PROJECT_GUIDE.md`)
+- **Story**: As a developer transitioning from LAMP / WordPress stack, I want a comprehensive 21-section step-by-step guide explaining the monorepo architecture, Next.js 16, NestJS dependency injection, Prisma ORM database relationships, authentication guards, media storage engines, DTO validation, and line-by-line code walkthroughs.
+- **Implementation**: `PROJECT_GUIDE.md`.
+- **Status**: ✅ **VERIFIED** — Complete 21-section educational guide created and linked in repository root.
 
 ---
 
@@ -150,5 +155,5 @@
 | **Epic 5: Media Uploader & Storage Engine** | US-29 | ✅ **Passed** | 100% (1/1) |
 | **Epic 6: User Content Management** | US-19, US-20 | ✅ **Passed** | 100% (2/2) |
 | **Epic 7: Platform Admin Controls** | US-21, US-22, US-23, US-24 | ✅ **Passed** | 100% (4/4) |
-| **Epic 8: Verified Data Seeding** | US-25 | ✅ **Passed** | 100% (1/1) |
-| **Total Platform Compliance** | **US-01 to US-29** | ✅ **Passed** | **100% (29/29)** |
+| **Epic 8: Developer Learning & Seeding** | US-25, US-30 | ✅ **Passed** | 100% (2/2) |
+| **Total Platform Compliance** | **US-01 to US-30** | ✅ **Passed** | **100% (30/30)** |

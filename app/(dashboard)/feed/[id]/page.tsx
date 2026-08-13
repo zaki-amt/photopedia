@@ -79,7 +79,7 @@ export default function SinglePostPage() {
         const storedLikes = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("photopedia_user_likes") || "{}") : {};
         setIsLiked(!!data.isLiked || !!storedLikes[postId]);
       } catch (err) {
-        console.warn("Failed to load DB post, using dynamic route preview:", err);
+        console.warn("Failed to load post, using dynamic route preview:", err);
         setPostDetails({
           id: postId,
           title: "Alpine Horizon Glow & Natural Light Reflections",

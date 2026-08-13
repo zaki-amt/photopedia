@@ -31,7 +31,7 @@ export default function LoginPage() {
     const cleanEmail = loginEmail.trim().toLowerCase();
 
     try {
-      // 1. Attempt NestJS backend API login
+      // Authenticate strictly with backend NestJS server API
       const data = await api.login({ email: cleanEmail, password: loginPass });
       if (typeof window !== "undefined") {
         localStorage.setItem("photopedia_token", data.accessToken);
@@ -40,59 +40,22 @@ export default function LoginPage() {
       setLoading(false);
       router.push("/");
     } catch (err: any) {
-      console.warn("Backend API login notice:", err.message);
-
-      // Infer user metadata dynamically from login email
-      let inferredName = "User";
-      let inferredUsername = "user";
-      let inferredRole: "admin" | "user" = "user";
-      let inferredAvatar = "/avatar.jpg";
-
-      if (cleanEmail.includes("admin")) {
-        inferredName = "Photopedia Admin";
-        inferredUsername = "admin";
-        inferredRole = "admin";
-      } else if (cleanEmail.includes("elena")) {
-        inferredName = "Elena Rostova";
-        inferredUsername = "elena_photos";
-        inferredAvatar = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80";
-      } else if (cleanEmail.includes("marcus")) {
-        inferredName = "Marcus Chen";
-        inferredUsername = "marcus_urban";
-        inferredAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80";
-      } else {
-        const parts = cleanEmail.split("@")[0];
-        inferredUsername = parts;
-        inferredName = parts.charAt(0).toUpperCase() + parts.slice(1);
-      }
-
-      const userSession = {
-        name: inferredName,
-        username: inferredUsername,
-        email: cleanEmail,
-        role: inferredRole,
-        avatar: inferredAvatar,
-      };
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("photopedia_user", JSON.stringify(userSession));
-        localStorage.setItem("photopedia_token", "demo_jwt_token_2026");
-      }
-
+      console.error("Login failed:", err);
+      setError(err.message || "Invalid credentials. Please check your email and password.");
       setLoading(false);
-      router.push("/feed");
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    performLogin(email, password || "AdminPass123!");
+    performLogin(email, password);
   };
 
   const quickFillAndLogin = (demoEmail: string) => {
+    const demoPassword = "AdminPass123!";
     setEmail(demoEmail);
-    setPassword("AdminPass123!");
-    performLogin(demoEmail, "AdminPass123!");
+    setPassword(demoPassword);
+    performLogin(demoEmail, demoPassword);
   };
 
   return (
