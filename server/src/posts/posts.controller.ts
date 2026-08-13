@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { AuthGuard } from '@nestjs/passport';
+import { CreatePostDto, UpdatePostDto, FlagPostDto, AddCommentDto } from './dto';
 
 @Controller('posts')
 export class PostsController {
@@ -29,13 +30,16 @@ export class PostsController {
     if (authHeader && authHeader.startsWith("Bearer ")) {
       try {
         const token = authHeader.substring(7);
-        const jwt = require("jsonwebtoken");
-        const decoded = jwt.decode(token);
-        if (decoded && decoded.sub) {
-          userId = decoded.sub;
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+          const decoded = JSON.parse(payloadJson);
+          if (decoded && decoded.sub) {
+            userId = decoded.sub;
+          }
         }
       } catch (e) {
-        // Optional auth
+        // Optional auth decoding fallback
       }
     }
     return this.postsService.findAllFeed(category, feedType, userId, search);
@@ -55,21 +59,9 @@ export class PostsController {
   @Post()
   async create(
     @Request() req: any,
-    @Body()
-    body: {
-      title: string;
-      image: string;
-      caption?: string;
-      category: string;
-      tags?: string[];
-      camera?: string;
-      lens?: string;
-      aperture?: string;
-      shutter?: string;
-      iso?: string;
-    },
+    @Body() dto: CreatePostDto,
   ) {
-    return this.postsService.create(req.user.id, body);
+    return this.postsService.create(req.user.id, dto);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -83,19 +75,19 @@ export class PostsController {
   async addComment(
     @Request() req: any,
     @Param('id') id: string,
-    @Body('content') content: string,
+    @Body() dto: AddCommentDto,
   ) {
-    return this.postsService.addComment(req.user.id, id, content);
+    return this.postsService.addComment(req.user.id, id, dto.content);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post(':id/flag')
   async flagPost(
     @Param('id') id: string,
-    @Body('reason') reason?: string,
-    @Request() req?: any,
+    @Body() dto: FlagPostDto,
+    @Request() req: any,
   ) {
-    const userId = req?.user?.id;
-    return this.postsService.flagPost(id, reason, userId);
+    return this.postsService.flagPost(id, dto.reason, req.user.id);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -103,20 +95,9 @@ export class PostsController {
   async updatePost(
     @Param('id') id: string,
     @Request() req: any,
-    @Body()
-    body: {
-      title?: string;
-      caption?: string;
-      category?: string;
-      tags?: string[];
-      camera?: string;
-      lens?: string;
-      aperture?: string;
-      shutter?: string;
-      iso?: string;
-    },
+    @Body() dto: UpdatePostDto,
   ) {
-    return this.postsService.updatePost(id, req.user.id, req.user.role, body);
+    return this.postsService.updatePost(id, req.user.id, req.user.role, dto);
   }
 
   @UseGuards(AuthGuard('jwt'))

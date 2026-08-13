@@ -36,6 +36,7 @@ export default function LoginPage() {
       if (typeof window !== "undefined") {
         localStorage.setItem("photopedia_token", data.accessToken);
         localStorage.setItem("photopedia_user", JSON.stringify(data.user));
+        document.cookie = `photopedia_token=${data.accessToken}; path=/; max-age=604800; SameSite=Lax`;
       }
       setLoading(false);
       router.push("/");

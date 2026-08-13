@@ -465,5 +465,45 @@ CHAPTER 12: LAMP / WORDPRESS TO MODERN STACK GLOSSARY & COMPARISON GUIDE
 0386: - In Photopedia: Excludes deleted posts (`deletedAt: null`) while preserving audit records.
 
 ===============================================================================
+CHAPTER 13: MODULAR DTO ARCHITECTURE, RESPONSE ENVELOPES & ERROR FILTERS
+===============================================================================
+
+0387: 13.1 MODULAR DTO (DATA TRANSFER OBJECT) ARCHITECTURE:
+0388: In high-grade enterprise applications, controller request bodies are strictly validated using
+0389: `class-validator` and `class-transformer` DTO classes located in domain `dto/` packages:
+0390: - `Auth`: `RegisterDto`, `LoginDto`
+0391: - `Posts`: `CreatePostDto`, `UpdatePostDto`, `AddCommentDto`, `FlagPostDto`
+0392: - `Users`: `UpdateProfileDto`
+0393: - `Media`: `UploadMediaDto`
+
+0394: 13.2 STANDARDIZED PRETTY RESPONSE ENVELOPE (`TransformInterceptor`):
+0395: All successful NestJS controller return payloads are intercepted by `TransformInterceptor`
+0396: (`server/src/common/interceptors/transform.interceptor.ts`) and wrapped in a clean, pretty structure:
+0397: {
+0398:   "statusCode": 200,
+0399:   "success": true,
+0400:   "message": "Request successful",
+0401:   "data": { ... },
+0402:   "path": "/users/1",
+0403:   "timestamp": "2026-08-13T15:05:03.863Z"
+0404: }
+
+0405: 13.3 GLOBAL HTTP EXCEPTION FILTER (`HttpExceptionFilter`):
+0406: Unhandled exceptions are intercepted by `HttpExceptionFilter`
+0407: (`server/src/common/filters/http-exception.filter.ts`) and formatted into structured error JSON:
+0408: {
+0409:   "statusCode": 401,
+0410:   "success": false,
+0411:   "error": "UnauthorizedException",
+0412:   "message": "Invalid email or password",
+0413:   "path": "/auth/login",
+0414:   "timestamp": "2026-08-13T15:02:35.000Z"
+0415: }
+
+0416: 13.4 LOWERCASE ROLE & STATUS STANDARDIZATION:
+0417: Database user roles (`"user"`, `"admin"`) and user statuses (`"active"`, `"pending"`, `"blocked"`)
+0418: are standardized to lowercase across Prisma schema defaults, seed scripts, NestJS auth guards, and React admin panels.
+
+===============================================================================
 END OF PHOTOPEDIA TECHNICAL ARCHITECTURE NOTES
 ===============================================================================

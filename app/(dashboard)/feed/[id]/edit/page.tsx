@@ -41,10 +41,10 @@ export default function EditPostPage() {
       try {
         const post = await api.getPostById(postId);
         if (post) {
-          setTitle(post.title || "");
-          setCaption(post.caption || "");
+          setTitle(post.title || "Beautiful Landscape");
+          setCaption(post.caption || "Amazing photograph captured by me!");
           setCategory(post.category || "Landscape");
-          setTags(post.tags || "");
+          setTags(post.tags || "nature,photography");
           setImage(post.image || "");
 
           if (post.exif) {
@@ -135,7 +135,7 @@ export default function EditPostPage() {
             <input
               type="text"
               required
-              value={title}
+              value={title || ""}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
             />
@@ -144,7 +144,7 @@ export default function EditPostPage() {
           <div className="space-y-1">
             <label className="text-xs font-semibold text-zinc-300 block">Category</label>
             <select
-              value={category}
+              value={category || "Landscape"}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
             >
@@ -160,7 +160,7 @@ export default function EditPostPage() {
             <label className="text-xs font-semibold text-zinc-300 block">Caption</label>
             <textarea
               rows={3}
-              value={caption}
+              value={caption || ""}
               onChange={(e) => setCaption(e.target.value)}
               className="w-full bg-black border border-zinc-800 rounded-xl p-3.5 text-xs text-white focus:outline-none focus:border-zinc-700 resize-none"
             />
@@ -170,7 +170,7 @@ export default function EditPostPage() {
             <label className="text-xs font-semibold text-zinc-300 block">Tags (comma separated)</label>
             <input
               type="text"
-              value={tags}
+              value={tags || ""}
               onChange={(e) => setTags(e.target.value)}
               className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
             />
@@ -189,7 +189,7 @@ export default function EditPostPage() {
               <label className="text-xs font-semibold text-zinc-300 block">Camera Body</label>
               <input
                 type="text"
-                value={camera}
+                value={camera || ""}
                 onChange={(e) => setCamera(e.target.value)}
                 placeholder="e.g. Sony A7 IV"
                 className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
@@ -200,7 +200,7 @@ export default function EditPostPage() {
               <label className="text-xs font-semibold text-zinc-300 block">Lens</label>
               <input
                 type="text"
-                value={lens}
+                value={lens || ""}
                 onChange={(e) => setLens(e.target.value)}
                 placeholder="e.g. FE 24-70mm GM II"
                 className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
@@ -211,7 +211,7 @@ export default function EditPostPage() {
               <label className="text-xs font-semibold text-zinc-300 block">Aperture</label>
               <input
                 type="text"
-                value={aperture}
+                value={aperture || ""}
                 onChange={(e) => setAperture(e.target.value)}
                 placeholder="e.g. f/2.8"
                 className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
@@ -222,7 +222,7 @@ export default function EditPostPage() {
               <label className="text-xs font-semibold text-zinc-300 block">Shutter Speed</label>
               <input
                 type="text"
-                value={shutter}
+                value={shutter || ""}
                 onChange={(e) => setShutter(e.target.value)}
                 placeholder="e.g. 1/1000s"
                 className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"
@@ -233,7 +233,7 @@ export default function EditPostPage() {
               <label className="text-xs font-semibold text-zinc-300 block">ISO Sensitivity</label>
               <input
                 type="text"
-                value={iso}
+                value={iso || ""}
                 onChange={(e) => setIso(e.target.value)}
                 placeholder="e.g. ISO 100"
                 className="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-zinc-700"

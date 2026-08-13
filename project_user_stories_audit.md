@@ -142,6 +142,40 @@
 - **Implementation**: `PROJECT_GUIDE.md`.
 - **Status**: ✅ **VERIFIED** — Complete 21-section educational guide created and linked in repository root.
 
+## Epic 9: Modular DTO Architecture, Response Envelopes & Code Quality
+
+### US-31: Modular DTO Validation
+- **Story**: As a developer, I want all incoming request bodies to be validated by dedicated class-validator DTOs (`RegisterDto`, `LoginDto`, `CreatePostDto`, `UpdatePostDto`, `UpdateProfileDto`, `UploadMediaDto`).
+- **Implementation**: `server/src/*/dto/` directory packages and NestJS global `ValidationPipe`.
+- **Status**: ✅ **VERIFIED** — All payloads automatically validated and sanitized with type-safe DTO classes.
+
+### US-32: Standardized Enterprise Response Envelope & Error Filter
+- **Story**: As a client developer, I want all successful API responses to be formatted in a pretty JSON envelope `{ statusCode, success, message, data, path, timestamp }` and all exceptions formatted by a global filter.
+- **Implementation**: `server/src/common/interceptors/transform.interceptor.ts` and `server/src/common/filters/http-exception.filter.ts`.
+- **Status**: ✅ **VERIFIED** — Tested live endpoints returning structured envelopes and error filters.
+
+### US-33: Step-by-Step Code Comments & Controlled Input Resilience
+- **Story**: As a maintenance engineer, I want step-by-step explanatory comments across NestJS server files and zero React controlled-to-uncontrolled input console warnings.
+- **Implementation**: `server/src/main.ts`, controllers, services, and nullish `|| ""` input value fallbacks in React form pages.
+- **Status**: ✅ **VERIFIED** — Complete step-by-step docstrings added and React input warnings eliminated.
+
+## Epic 10: Security Enforcement & Route Protection Resilience
+
+### US-34: Edge Route Protection & Auth Cookie Sync
+- **Story**: As a user, I want Next.js edge middleware to intercept and redirect unauthenticated attempts on protected pages (`/feed/new`, `/profile/edit`, `/admin/*`) to `/login`, using a synchronized HTTP cookie.
+- **Implementation**: `middleware.ts`, `app/hooks/useAuth.tsx`, and auth components synchronizing the `photopedia_token` cookie.
+- **Status**: ✅ **VERIFIED** — Edge middleware redirects correctly based on synchronized token cookie state.
+
+### US-35: Data Integrity & Auth Gate Redirection
+- **Story**: As a user, I want the backend to reject requests with missing or invalid author IDs with an `UnauthorizedException` instead of falling back to a dummy or default database account.
+- **Implementation**: `PostsService.create()`, `toggleLike()`, and `addComment()` in `posts.service.ts`.
+- **Status**: ✅ **VERIFIED** — Removed silent fallbacks; incorrect auth context yields 401 exceptions immediately.
+
+### US-36: Media Upload, Public Profile PII, & CORS Protections
+- **Story**: As a security-conscious administrator, I want media file uploads restricted to authenticated creators, user emails and phone numbers omitted from public profile lookups, and wildcard CORS credentials disabled.
+- **Implementation**: `media.controller.ts`, `users.service.ts`, and `main.ts` configurations.
+- **Status**: ✅ **VERIFIED** — Uploads guarded by JWT strategy, PII fields removed from public profile selects, and origin-explicit CORS enabled.
+
 ---
 
 ## Summary Table
@@ -156,4 +190,6 @@
 | **Epic 6: User Content Management** | US-19, US-20 | ✅ **Passed** | 100% (2/2) |
 | **Epic 7: Platform Admin Controls** | US-21, US-22, US-23, US-24 | ✅ **Passed** | 100% (4/4) |
 | **Epic 8: Developer Learning & Seeding** | US-25, US-30 | ✅ **Passed** | 100% (2/2) |
-| **Total Platform Compliance** | **US-01 to US-30** | ✅ **Passed** | **100% (30/30)** |
+| **Epic 9: Modular DTOs & Response Envelopes** | US-31, US-32, US-33 | ✅ **Passed** | 100% (3/3) |
+| **Epic 10: Security Enforcement & Route Protection** | US-34, US-35, US-36 | ✅ **Passed** | 100% (3/3) |
+| **Total Platform Compliance** | **US-01 to US-36** | ✅ **Passed** | **100% (36/36)** |

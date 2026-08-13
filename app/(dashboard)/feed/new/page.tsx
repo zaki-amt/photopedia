@@ -261,7 +261,7 @@ export default function NewPostPage() {
                   </label>
                   <input
                     type="url"
-                    value={formData.image}
+                    value={formData.image || ""}
                     onChange={(e) => setFormData({ ...formData, image: e.target.value })}
                     placeholder="https://images.unsplash.com/photo-..."
                     className="w-full bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
@@ -312,7 +312,7 @@ export default function NewPostPage() {
               <input
                 type="text"
                 required
-                value={formData.title}
+                value={formData.title || ""}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g. Alpine Horizon Glow"
                 className="w-full bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
@@ -326,7 +326,7 @@ export default function NewPostPage() {
                   Category
                 </label>
                 <select
-                  value={formData.category}
+                  value={formData.category || "Landscape"}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-zinc-500 transition-colors"
                 >
@@ -345,7 +345,7 @@ export default function NewPostPage() {
                 </label>
                 <input
                   type="text"
-                  value={formData.tags}
+                  value={formData.tags || ""}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder="landscape, mountain, goldenhour"
                   className="w-full bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors font-mono"
@@ -359,7 +359,7 @@ export default function NewPostPage() {
               </label>
               <textarea
                 rows={3}
-                value={formData.caption}
+                value={formData.caption || ""}
                 onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
                 placeholder="Describe the story, location, lighting, and technique behind this shot..."
                 className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
@@ -379,7 +379,7 @@ export default function NewPostPage() {
                 <label className="text-[10px] font-mono text-zinc-500 uppercase">Camera Body</label>
                 <input
                   type="text"
-                  value={formData.camera}
+                  value={formData.camera || ""}
                   onChange={(e) => setFormData({ ...formData, camera: e.target.value })}
                   placeholder="e.g. Hasselblad X2D 100C"
                   className="w-full bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
@@ -390,7 +390,7 @@ export default function NewPostPage() {
                 <label className="text-[10px] font-mono text-zinc-500 uppercase">Lens</label>
                 <input
                   type="text"
-                  value={formData.lens}
+                  value={formData.lens || ""}
                   onChange={(e) => setFormData({ ...formData, lens: e.target.value })}
                   placeholder="e.g. XCD 38mm f/2.5 V"
                   className="w-full bg-black border border-zinc-800 rounded-lg py-2 px-3 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
@@ -403,7 +403,7 @@ export default function NewPostPage() {
                 <label className="text-[10px] font-mono text-zinc-500 uppercase">Aperture</label>
                 <input
                   type="text"
-                  value={formData.aperture}
+                  value={formData.aperture || ""}
                   onChange={(e) => setFormData({ ...formData, aperture: e.target.value })}
                   placeholder="f/2.8"
                   className="w-full bg-black border border-zinc-800 rounded-lg py-1.5 px-2.5 text-xs text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
@@ -414,7 +414,7 @@ export default function NewPostPage() {
                 <label className="text-[10px] font-mono text-zinc-500 uppercase">Shutter</label>
                 <input
                   type="text"
-                  value={formData.shutter}
+                  value={formData.shutter || ""}
                   onChange={(e) => setFormData({ ...formData, shutter: e.target.value })}
                   placeholder="1/1000s"
                   className="w-full bg-black border border-zinc-800 rounded-lg py-1.5 px-2.5 text-xs text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
@@ -425,7 +425,7 @@ export default function NewPostPage() {
                 <label className="text-[10px] font-mono text-zinc-500 uppercase">ISO</label>
                 <input
                   type="text"
-                  value={formData.iso}
+                  value={formData.iso || ""}
                   onChange={(e) => setFormData({ ...formData, iso: e.target.value })}
                   placeholder="100"
                   className="w-full bg-black border border-zinc-800 rounded-lg py-1.5 px-2.5 text-xs text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"

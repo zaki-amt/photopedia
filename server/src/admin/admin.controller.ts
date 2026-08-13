@@ -3,10 +3,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UpdateModerationDto } from './dto/update-moderation.dto';
 
 @Controller('admin')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-@Roles('ADMIN')
+@Roles('admin')
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
@@ -43,8 +44,8 @@ export class AdminController {
   @Post('moderation/:id')
   updateModeration(
     @Param('id') id: string,
-    @Body('status') status: 'APPROVED' | 'REMOVED',
+    @Body() dto: UpdateModerationDto,
   ) {
-    return this.adminService.updateModerationStatus(id, status);
+    return this.adminService.updateModerationStatus(id, dto.status);
   }
 }

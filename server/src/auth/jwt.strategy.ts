@@ -18,12 +18,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
     });
 
-    if (!user) {
+    if (!user || user.deletedAt !== null) {
       throw new UnauthorizedException('Invalid user token');
     }
 
-    if (user.status === 'BLOCKED') {
-      throw new UnauthorizedException('Your account has been blocked by an administrator. Please contact support.');
+    const statusLower = user.status?.toLowerCase();
+    if (statusLower === 'blocked' || statusLower === 'deleted') {
+      throw new UnauthorizedException('Your account has been deactivated or blocked by an administrator.');
     }
 
     const { password, ...result } = user;

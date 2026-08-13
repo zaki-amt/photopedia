@@ -6,21 +6,27 @@ export class AdminService {
   constructor(private prisma: PrismaService) {}
 
   async getOverviewMetrics() {
-    const totalUsers = await this.prisma.user.count({ where: { deletedAt: null } });
-    const publishedPhotos = await this.prisma.post.count({ where: { deletedAt: null } });
-    const totalLikes = await this.prisma.like.count();
-    const totalComments = await this.prisma.comment.count({ where: { deletedAt: null } });
-    const flaggedQueue = await this.prisma.moderationLog.count({
-      where: { status: 'PENDING' },
-    });
-
-    const recentLogs = await this.prisma.moderationLog.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        post: { select: { title: true, image: true, author: { select: { username: true } } } },
-      },
-    });
+    const [
+      totalUsers,
+      publishedPhotos,
+      totalLikes,
+      totalComments,
+      flaggedQueue,
+      recentLogs,
+    ] = await Promise.all([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.post.count({ where: { deletedAt: null } }),
+      this.prisma.like.count(),
+      this.prisma.comment.count({ where: { deletedAt: null } }),
+      this.prisma.moderationLog.count({ where: { status: 'pending' } }),
+      this.prisma.moderationLog.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          post: { select: { title: true, image: true, author: { select: { username: true } } } },
+        },
+      }),
+    ]);
 
     return {
       totalUsers,
@@ -60,7 +66,8 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) return;
 
-    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    const currentRoleLower = user.role?.toLowerCase();
+    const newRole = currentRoleLower === 'admin' ? 'user' : 'admin';
     return this.prisma.user.update({
       where: { id: userId },
       data: { role: newRole },
@@ -72,7 +79,8 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) return;
 
-    const newStatus = user.status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
+    const currentStatusLower = user.status?.toLowerCase();
+    const newStatus = currentStatusLower === 'blocked' ? 'active' : 'blocked';
     return this.prisma.user.update({
       where: { id: userId },
       data: { status: newStatus },
@@ -86,7 +94,7 @@ export class AdminService {
 
     return this.prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date(), status: 'DELETED' },
+      data: { deletedAt: new Date(), status: 'deleted' },
       select: { id: true, username: true },
     });
   }

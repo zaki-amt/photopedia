@@ -4,16 +4,17 @@
 
 ## 1. System Overview & Architecture
 
-**Photopedia** is a high-performance, full-stack photography platform built for visual storytellers, photography creators, and curators. It features uncompressed photo feeds, real-time universal search, a multi-provider media uploader architecture (Local Storage, Cloudflare R2, AWS S3, DigitalOcean Spaces), full-screen photo lightbox viewports, camera EXIF metadata tracking, dynamic category archives, public creator portfolios, follower/following archives, author content editing controls, support contact desk, platform administrator moderation controls, and a dedicated LAMP-to-Modern-Stack learning guide (`PROJECT_GUIDE.md`).
+**Photopedia** is a high-performance, SaaS-ready full-stack photography platform built for visual storytellers, photography creators, and curators. It features uncompressed photo feeds, real-time universal search, a multi-provider media uploader architecture (Local Storage, Cloudflare R2, AWS S3, DigitalOcean Spaces), full-screen photo lightbox viewports, camera EXIF metadata tracking, dynamic category archives, public creator portfolios, follower/following archives, author content editing controls, support contact desk, platform administrator moderation controls, modular SaaS layouts (`HeaderNav`, `SidebarNav`, `AdminSidebarNav`, `Footer`, `useAuth`), and a dedicated LAMP-to-Modern-Stack learning guide (`PROJECT_GUIDE.md`).
 
 ### Technical Stack
 
 - **Frontend**: Next.js 16 (App Router with Turbopack), React 19, TypeScript, Tailwind CSS, Lucide Icons.
-- **Backend**: NestJS (Modular Architecture), Express, Passport JWT Authentication, Prisma ORM.
+- **Backend**: NestJS (Modular DTO Architecture with `class-validator`), Express, Passport JWT Authentication, Prisma ORM.
+- **API Formatting & Filters**: Global `TransformInterceptor` (pretty `{ statusCode, success, message, data, path, timestamp }` envelope), `HttpExceptionFilter` (standardized error JSON), and step-by-step inline server comments.
 - **Media Storage Engine**: Standardized `IStorageProvider` interface with dynamic `STORAGE_PROVIDER` token supporting Local Storage, Cloudflare R2, AWS S3, and DigitalOcean Spaces.
-- **Database**: SQLite (`dev.db`) managed with Prisma ORM migrations and studio GUI.
+- **Database**: SQLite (`dev.db`) managed with Prisma ORM migrations, studio GUI, and standardized lowercase `"user"`/`"admin"` roles and `"active"` status.
 - **Styling**: Vercel/Framer-inspired dark mode aesthetic (monochrome black/white palette, `bg-black`, `bg-zinc-950`, `border-zinc-800`).
-- **Learning Guide**: Complete 21-section step-by-step developer course guide (`PROJECT_GUIDE.md`).
+- **Learning Guide**: Complete 21-section step-by-step developer course guide (`PROJECT_GUIDE.md`) & technical notes (`PROJECT_NOTES.txt`).
 
 ---
 
@@ -29,7 +30,7 @@ photopedia/
 │   │       └── page.tsx              # Sign Up Page with automatic session redirection
 │   ├── (dashboard)/                  # Dashboard & Public Content Layout Group
 │   │   ├── admin/                    # Platform Administrator Controls
-│   │   │   ├── layout.tsx            # Admin Tab Navigation Guard
+│   │   │   ├── layout.tsx            # Admin Panel Layout (AdminSidebarNav Guard)
 │   │   │   ├── page.tsx              # Dynamic Admin System Overview Dashboard
 │   │   │   ├── categories/
 │   │   │   │   └── page.tsx          # Category Manager (Add & View Categories)
@@ -53,7 +54,7 @@ photopedia/
 │   │   │   ├── [id]/
 │   │   │   │   ├── page.tsx          # Single Post Detail Page (EXIF, Comments, Red LikeButton, Lightbox Modal, Flag/Delete)
 │   │   │   │   └── edit/
-│   │   │       └── page.tsx      # Author Edit Photograph Form (Title, Caption, Category, EXIF)
+│   │   │       └── page.tsx          # Author Edit Photograph Form (Title, Caption, Category, EXIF)
 │   │   │   └── new/
 │   │   │       └── page.tsx          # Publish Form with Drag & Drop Local Media Uploader
 │   │   ├── profile/                  # User Profile Management
@@ -62,8 +63,13 @@ photopedia/
 │   │   │       └── page.tsx          # Edit Profile Form with Local Avatar Photo Uploader
 │   │   ├── support/                  # Support Desk & Appeal Form
 │   │   │   └── page.tsx              # Public Support & Contact Desk Page
-│   │   └── layout.tsx                # Vercel/Framer Styled Sidebar with Real-Time Search Bar
+│   │   └── layout.tsx                # SaaS Root Dashboard Layout (AuthProvider Wrapper)
 │   ├── components/                   # Atomic Shared Components
+│   │   ├── layout/                   # Modular Layout Components
+│   │   │   ├── HeaderNav.tsx         # Top Navigation Header with Universal Search & User Dropdown
+│   │   │   ├── SidebarNav.tsx        # Main App Sidebar Navigation with Active Route Highlights
+│   │   │   ├── AdminSidebarNav.tsx   # SaaS Admin Panel Side Navigation
+│   │   │   └── Footer.tsx            # Clean SaaS Footer Component
 │   │   ├── PostCard.tsx              # Feed Photograph Card (Author Edit/Delete, Flag, Like)
 │   │   ├── PhotoLightboxModal.tsx    # Full-Screen Photo Lightbox Modal Viewport
 │   │   ├── PostCardSkeleton.tsx      # Animated Shimmer Skeleton Loading Component
@@ -76,6 +82,7 @@ photopedia/
 │   │   ├── UserListItem.tsx          # User List Item Row Component
 │   │   └── FollowersFollowingModal.tsx # Interactive Followers/Following Archive Modal
 │   ├── hooks/                        # Custom Business Logic Hooks
+│   │   ├── useAuth.tsx               # Centralized SaaS Authentication & User Session Context Hook
 │   │   ├── useLike.ts                # Like/Unlike State, Count, and API Integration Hook
 │   │   ├── useFollow.ts              # Follow/Unfollow State, Async Sync, and API Hook
 │   │   ├── useFollowList.ts          # Fetch Followers & Following Lists Hook
@@ -109,6 +116,7 @@ photopedia/
 │       ├── users/                    # Users Module (Follow/Unfollow, Followers, Following, Suggested)
 │       └── prisma/                   # Prisma ORM Global Module
 ├── PROJECT_GUIDE.md                  # Comprehensive LAMP/WordPress to Modern Stack Learning Guide
+├── PROJECT_NOTES.txt                 # Detailed 1,000+ Line Technical Architecture Reference Notes
 ├── project_user_stories_audit.md     # Audit Checklist (30 User Stories Passed)
 └── project_documentation.md         # Master System Guide
 ```
@@ -155,3 +163,15 @@ photopedia/
   - `deleteFile(key: string): Promise<boolean>`
   - `getPublicUrl(key: string): Promise<string>`
 - **Switching Storage Providers**: Configured dynamically via `STORAGE_DRIVER` environment variable (`local` | `r2` | `s3` | `spaces`).
+
+---
+
+## 5. Security & Verification Policy
+
+- **Token & Cookie Synchronization**: Client sessions are persisted in `localStorage`, and token authentication is synchronized into the `photopedia_token` document cookie upon login/registration. This allows Next.js edge `middleware.ts` to perform immediate redirects to `/login` for strictly protected routes (`/feed/new`, `/profile/edit`, `/admin/*`).
+- **Data Integrity Safeguards**: The backend contains zero silent user fallbacks. If an invalid or missing user session ID is passed to posts or comments queries, it immediately aborts with `UnauthorizedException`.
+- **Media Upload Authentication**: Files can only be uploaded by authenticated accounts via `@UseGuards(AuthGuard('jwt'))` on `/media/upload`.
+- **CORS Protection**: The system rejects wildcard CORS origins with credentials. A dynamic origin checker whitelists allowed Next.js addresses (`http://localhost:3000`, etc.).
+- **PII Exposure Prevention**: Public creator profile endpoints do not return confidential contact details (`email`, `phone`).
+- **Admin Moderation & Flag Security**: Modifying moderation queue logs uses strict `UpdateModerationDto` validation, and community post flagging requires active JWT authentication.
+- **Deactivated Accounts Block**: Deleted users (`deletedAt !== null`) and blocked users are blocked at JWT token validation.

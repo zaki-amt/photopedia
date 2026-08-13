@@ -23,7 +23,11 @@ export async function fetchApi<T>(
     throw new Error(errorData.message || `API Error: ${response.statusText}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  if (result && typeof result === "object" && "data" in result && "success" in result) {
+    return result.data as T;
+  }
+  return result as T;
 }
 
 // Typed API Calls
@@ -61,13 +65,18 @@ export const api = {
       throw new Error(errorData.message || "Failed to upload media file");
     }
 
-    return response.json() as Promise<{
+    const result = await response.json();
+    const data = (result && typeof result === "object" && "data" in result && "success" in result)
+      ? result.data
+      : result;
+
+    return data as {
       url: string;
       key: string;
       filename: string;
       size: number;
       mimetype: string;
-    }>;
+    };
   },
 
   // Posts

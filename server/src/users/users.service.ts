@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdateProfileDto } from './dto';
 
 @Injectable()
 export class UsersService {
@@ -12,13 +13,11 @@ export class UsersService {
         id: true,
         name: true,
         username: true,
-        email: true,
         avatar: true,
         coverImage: true,
         bio: true,
         location: true,
         website: true,
-        phone: true,
         cameraBody: true,
         backupCamera: true,
         lenses: true,
@@ -55,21 +54,7 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    dto: {
-      name?: string;
-      username?: string;
-      email?: string;
-      avatar?: string;
-      coverImage?: string;
-      bio?: string;
-      location?: string;
-      website?: string;
-      phone?: string;
-      cameraBody?: string;
-      backupCamera?: string;
-      lenses?: string;
-      accessories?: string;
-    },
+    dto: UpdateProfileDto,
   ) {
     if (dto.username) {
       const existing = await this.prisma.user.findFirst({
@@ -246,7 +231,7 @@ export class UsersService {
     return this.prisma.user.findMany({
       where: {
         deletedAt: null,
-        role: "USER",
+        role: "user",
         ...(currentUserId ? { NOT: { id: currentUserId } } : {}),
       },
       ...(limit ? { take: limit } : {}),

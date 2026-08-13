@@ -433,3 +433,14 @@ export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';
 ## 12. Conclusion & Summary
 
 You now possess a complete blueprint of **Photopedia**! You understand how Next.js App Router, NestJS Modular Controllers/Services, Prisma ORM database models, and the `StorageModule` work together to deliver a visual photography platform.
+
+---
+
+## 13. Security Best Practices & Remediation Checklist
+
+When building production-ready applications, always adhere to the following security protocols implemented in Photopedia:
+1. **Next.js Edge Middleware Cookie Synchronization**: Since Next.js Edge Middleware cannot directly read `localStorage` in the browser, always synchronize the JWT bearer token into an HTTP-only or document-level cookie (e.g. `photopedia_token`) on login/registration to secure route redirection.
+2. **Eliminate Silent User Fallbacks**: Never assign records to a fallback account if the user identifier is missing. Always check user existence and throw `UnauthorizedException` to prevent data corruption.
+3. **Guard File Uploads**: Always restrict resource upload endpoints (`POST /media/upload`) with passport guards to prevent unauthenticated server disk exhaustion.
+4. **Protect PII (Personally Identifiable Information)**: Omit fields like `email` and `phone` from public profile database selections (`select` parameters) to prevent leaking private user details to anonymous callers.
+5. **Secure CORS Origins**: Avoid wildcard CORS configurations (`origin: '*'`) when `credentials: true` is enabled, as browsers block it. Set explicit whitelist origins in the backend server config.

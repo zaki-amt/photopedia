@@ -14,15 +14,16 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get("photopedia_token")?.value;
 
-  // Protect protected dashboard paths
-  const isProtectedPath =
-    pathname.startsWith("/feed") ||
-    pathname.startsWith("/profile") ||
+  // Protected paths that require authentication cookie
+  const isStrictlyProtected =
+    pathname.startsWith("/feed/new") ||
+    pathname.startsWith("/profile/edit") ||
     pathname.startsWith("/admin");
 
-  if (isProtectedPath && !token) {
-    // Client-side authentication guard will check localStorage as secondary check
-    return NextResponse.next();
+  if (isStrictlyProtected && !token) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

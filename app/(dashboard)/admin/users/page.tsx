@@ -47,7 +47,7 @@ export default function UserManagementPage() {
         if (user.id === id) {
           return {
             ...user,
-            role: user.role.toUpperCase() === "ADMIN" ? "USER" : "ADMIN",
+            role: user.role?.toLowerCase() === "admin" ? "user" : "admin",
           };
         }
         return user;
@@ -63,7 +63,7 @@ export default function UserManagementPage() {
           if (u.id === id) {
             return {
               ...u,
-              status: res?.status || (u.status === "BLOCKED" ? "ACTIVE" : "BLOCKED"),
+              status: res?.status || (u.status?.toLowerCase() === "blocked" ? "active" : "blocked"),
             };
           }
           return u;
@@ -75,7 +75,7 @@ export default function UserManagementPage() {
           if (u.id === id) {
             return {
               ...u,
-              status: u.status === "BLOCKED" ? "ACTIVE" : "BLOCKED",
+              status: u.status?.toLowerCase() === "blocked" ? "active" : "blocked",
             };
           }
           return u;
@@ -152,7 +152,8 @@ export default function UserManagementPage() {
             </thead>
             <tbody className="divide-y divide-zinc-900">
               {filteredUsers.map((user) => {
-                const isBlocked = user.status === "BLOCKED";
+                const isBlocked = user.status?.toLowerCase() === "blocked";
+                const isAdmin = user.role?.toLowerCase() === "admin";
                 return (
                   <tr key={user.id} className="hover:bg-zinc-900/50 transition-colors">
                     <td className="px-5 py-3.5">
@@ -164,13 +165,13 @@ export default function UserManagementPage() {
                       <button
                         onClick={() => toggleRole(user.id)}
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-medium border transition-colors ${
-                          user.role.toUpperCase() === "ADMIN"
+                          isAdmin
                             ? "bg-white text-black border-white font-bold"
                             : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700"
                         }`}
                       >
                         <Shield className="w-3 h-3" />
-                        {user.role.toUpperCase()}
+                        {user.role}
                       </button>
                     </td>
 

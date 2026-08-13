@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreatePostDto, UpdatePostDto } from './dto';
 
 @Injectable()
 export class PostsService {
@@ -122,15 +123,10 @@ export class PostsService {
       throw new BadRequestException('Image URL or file path is required');
     }
 
-    // Verify author exists in database, fallback to first user if not found
-    let authorId = userId;
+    // Verify author exists in database
     const authorExists = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!authorExists) {
-      const firstUser = await this.prisma.user.findFirst();
-      if (!firstUser) {
-        throw new BadRequestException('No valid user found in database to author this photograph');
-      }
-      authorId = firstUser.id;
+      throw new UnauthorizedException('Authenticated author user record not found');
     }
 
     let tagsString = '';
@@ -147,7 +143,7 @@ export class PostsService {
         caption: dto.caption || '',
         category: dto.category || 'Landscape',
         tags: tagsString,
-        authorId: authorId,
+        authorId: userId,
         exif: {
           create: {
             camera: dto.camera || 'Sony A7IV',
@@ -168,16 +164,14 @@ export class PostsService {
   async toggleLike(userId: string, postId: string) {
     return this.prisma.$transaction(async (tx) => {
       // Ensure user exists
-      let validUserId = userId;
       const uExists = await tx.user.findUnique({ where: { id: userId } });
       if (!uExists) {
-        const fallback = await tx.user.findFirst();
-        if (fallback) validUserId = fallback.id;
+        throw new UnauthorizedException('Authenticated user record not found');
       }
 
       const existingLike = await tx.like.findUnique({
         where: {
-          userId_postId: { userId: validUserId, postId },
+          userId_postId: { userId, postId },
         },
       });
 
@@ -187,7 +181,7 @@ export class PostsService {
         return { liked: false, count };
       } else {
         await tx.like.create({
-          data: { userId: validUserId, postId },
+          data: { userId, postId },
         });
         const count = await tx.like.count({ where: { postId } });
         return { liked: true, count };
@@ -201,17 +195,15 @@ export class PostsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      let validUserId = userId;
       const uExists = await tx.user.findUnique({ where: { id: userId } });
       if (!uExists) {
-        const fallback = await tx.user.findFirst();
-        if (fallback) validUserId = fallback.id;
+        throw new UnauthorizedException('Authenticated user record not found');
       }
 
       return tx.comment.create({
         data: {
           content: content.trim(),
-          userId: validUserId,
+          userId,
           postId,
         },
         include: {
@@ -250,7 +242,7 @@ export class PostsService {
         postId: post.id,
         reason: reason || 'User reported content for review',
         action: 'FLAGGED',
-        status: 'PENDING',
+        status: 'pending',
       },
     });
 
@@ -263,7 +255,7 @@ export class PostsService {
       throw new NotFoundException(`Post ${postId} not found`);
     }
 
-    if (userRole !== 'ADMIN' && post.authorId !== userId) {
+    if (userRole?.toLowerCase() !== 'admin' && post.authorId !== userId) {
       throw new BadRequestException('Not authorized to delete this post');
     }
 
@@ -277,17 +269,7 @@ export class PostsService {
     postId: string,
     userId: string,
     userRole: string,
-    dto: {
-      title?: string;
-      caption?: string;
-      category?: string;
-      tags?: any;
-      camera?: string;
-      lens?: string;
-      aperture?: string;
-      shutter?: string;
-      iso?: string;
-    },
+    dto: UpdatePostDto,
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -298,7 +280,7 @@ export class PostsService {
       throw new NotFoundException(`Post ${postId} not found`);
     }
 
-    if (userRole !== 'ADMIN' && post.authorId !== userId) {
+    if (userRole?.toLowerCase() !== 'admin' && post.authorId !== userId) {
       throw new BadRequestException('Not authorized to edit this post');
     }
 

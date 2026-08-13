@@ -23,8 +23,8 @@ model User {
   backupCamera  String?
   lenses        String?
   accessories   String?
-  role          String          @default("USER")   // USER | ADMIN
-  status        String          @default("ACTIVE") // ACTIVE | PENDING | BANNED
+  role          String          @default("user")   // user | admin
+  status        String          @default("active") // active | pending | blocked
   deletedAt     DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -131,7 +131,7 @@ model ModerationLog {
   adminId   String?
   action    String   @default("DELETE_POST")
   reason    String?
-  status    String   @default("PENDING")
+  status    String   @default("pending")
   createdAt DateTime @default(now())
 
   post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)

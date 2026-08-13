@@ -46,11 +46,12 @@ export default function RegisterPage() {
       if (typeof window !== "undefined") {
         localStorage.setItem("photopedia_token", data.accessToken);
         localStorage.setItem("photopedia_user", JSON.stringify(data.user));
+        document.cookie = `photopedia_token=${data.accessToken}; path=/; max-age=604800; SameSite=Lax`;
       }
       setLoading(false);
       router.push("/feed");
     } catch (err: any) {
-      console.warn("Backend API registration error/fallback:", err.message);
+      console.warn("Backend API registration error:", err.message);
 
       // If backend API returns an explicit error message (e.g. "Email address is already registered"), surface it
       if (err.message && !err.message.includes("Failed to fetch") && !err.message.includes("API Error")) {

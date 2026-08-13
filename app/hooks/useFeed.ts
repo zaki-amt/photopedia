@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/app/lib/api";
-import { useUser } from "@/app/(dashboard)/layout";
+import { useUser } from "@/app/hooks/useAuth";
 
 export function useFeed() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export function useFeed() {
   const [categories, setCategories] = useState<any[]>([]);
   const [creators, setCreators] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [followingMap, setFollowingMap] = useState<{ [key: string]: boolean }>({});
 
   const fetchFeed = useCallback(async (tab: "for-you" | "following" = activeTab, searchStr: string = searchQuery) => {
@@ -109,6 +110,7 @@ export function useFeed() {
     categories,
     creators,
     loading,
+    error,
     followingMap,
     fetchFeed,
     handleLike,

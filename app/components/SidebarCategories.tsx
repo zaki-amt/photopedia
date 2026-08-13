@@ -50,29 +50,16 @@ export function SidebarCategories({
     async function loadTopCategories() {
       try {
         const data = await api.getTopCategories();
-        if (Array.isArray(data) && data.length > 0) {
-          setCategories(data);
-        } else {
-          setCategories([
-            { name: "Landscape", count: 2 },
-            { name: "Urban & Street", count: 1 },
-            { name: "Portraits", count: 1 },
-            { name: "Architecture", count: 1 },
-          ]);
-        }
+        setCategories(Array.isArray(data) ? data : []);
       } catch (e) {
-        setCategories([
-          { name: "Landscape", count: 2 },
-          { name: "Urban & Street", count: 1 },
-          { name: "Portraits", count: 1 },
-          { name: "Architecture", count: 1 },
-        ]);
+        console.error("Failed to load categories:", e);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
     }
     loadTopCategories();
-  }, []);
+  }, [propCategories]);
 
   return (
     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4 font-sans">

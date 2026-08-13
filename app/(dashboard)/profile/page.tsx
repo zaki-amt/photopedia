@@ -81,10 +81,11 @@ export default function ProfilePage() {
           </h1>
           <p className="text-xs text-zinc-400">View public portfolio and gear specifications</p>
         </div>
-
-        <span className="font-mono text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-md uppercase tracking-wider">
-          {activeUser.role ? activeUser.role.toUpperCase() : "USER"}
-        </span>
+        {activeUser.role?.toLowerCase() === "admin" ? (
+          <span className="font-mono text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-2.5 py-1 rounded-md uppercase tracking-wider">
+            {activeUser.role}
+          </span>
+        ) : null}
       </div>
 
       {/* Main Grid */}
@@ -97,8 +98,9 @@ export default function ProfilePage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={
-                  activeUser.coverImage ||
-                  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80"
+                  activeUser.coverImage && activeUser.coverImage !== "/cover.jpg"
+                    ? activeUser.coverImage
+                    : "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80"
                 }
                 alt="Cover Banner"
                 className="w-full h-full object-cover"

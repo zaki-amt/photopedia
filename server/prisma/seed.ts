@@ -588,14 +588,14 @@ async function main() {
   // 1. Preserve or Create Admin User
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@photopedia.com' },
-    update: { role: 'ADMIN', status: 'ACTIVE' },
+    update: { role: 'admin', status: 'active' },
     create: {
       email: 'admin@photopedia.com',
       username: 'admin',
       name: 'Photopedia Admin',
       password: hashedPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
+      role: 'admin',
+      status: 'active',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       bio: 'Platform Administrator & Content Manager.',
     },
@@ -604,14 +604,14 @@ async function main() {
   // 2. Preserve or Create Elena User
   const elenaUser = await prisma.user.upsert({
     where: { email: 'elena@example.com' },
-    update: { role: 'USER', status: 'ACTIVE' },
+    update: { role: 'user', status: 'active' },
     create: {
       email: 'elena@example.com',
       username: 'elena_photos',
       name: 'Elena Rostova',
       password: hashedPassword,
-      role: 'USER',
-      status: 'ACTIVE',
+      role: 'user',
+      status: 'active',
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80',
       bio: 'Landscape & outdoor photographer documenting natural light reflections.',
       location: 'Chamonix, France',
@@ -649,8 +649,8 @@ async function main() {
         username: seed.username,
         name: seed.name,
         password: hashedPassword,
-        role: 'USER',
-        status: 'ACTIVE',
+        role: 'user',
+        status: 'active',
         avatar: seed.avatar,
         bio: seed.bio,
         location: seed.location,
@@ -666,7 +666,7 @@ async function main() {
 
   // 5. Seed Photo Posts & EXIF Camera Data using VERIFIED_PHOTOS array
   const createdPosts: any[] = [];
-  const creatorUsers = seededCreators.filter((u) => u.role === 'USER');
+  const creatorUsers = seededCreators.filter((u) => u.role === 'user');
 
   for (let i = 0; i < VERIFIED_PHOTOS.length; i++) {
     const photo = VERIFIED_PHOTOS[i];

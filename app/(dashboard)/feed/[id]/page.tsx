@@ -80,26 +80,7 @@ export default function SinglePostPage() {
         setIsLiked(!!data.isLiked || !!storedLikes[postId]);
       } catch (err) {
         console.warn("Failed to load post, using dynamic route preview:", err);
-        setPostDetails({
-          id: postId,
-          title: "Alpine Horizon Glow & Natural Light Reflections",
-          category: "Landscape",
-          author: {
-            name: "Elena Rostova",
-            username: "elena_photos",
-            avatar: "/avatar.jpg",
-          },
-          createdAt: new Date().toISOString(),
-          image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80",
-          caption: "Golden hour reflection over the alpine lake. Filtered through natural misty light 🏔️✨",
-          exif: {
-            camera: "Sony A7IV",
-            lens: "24mm f/1.4 GM",
-            aperture: "f/2.8",
-            shutter: "1/1000s",
-            iso: "100",
-          },
-        });
+        router.push("/not-found");
       } finally {
         setLoading(false);
       }
@@ -161,8 +142,8 @@ export default function SinglePostPage() {
           id: created.id || Date.now().toString(),
           content: created.content || commentContent,
           user: created.user || {
-            name: user?.name || "Elena Rostova",
-            username: user?.username || "elena_photos",
+            name: user?.name || "User",
+            username: user?.username || "user_name",
             avatar: user?.avatar || "/avatar.jpg",
           },
           createdAt: created.createdAt || new Date().toISOString(),
@@ -175,8 +156,8 @@ export default function SinglePostPage() {
           id: Date.now().toString(),
           content: commentContent,
           user: {
-            name: user?.name || "Elena Rostova",
-            username: user?.username || "elena_photos",
+            name: user?.name || "User",
+            username: user?.username || "user_name",
             avatar: user?.avatar || "/avatar.jpg",
           },
           createdAt: new Date().toISOString(),

@@ -123,8 +123,9 @@ export default function PublicCreatorProfilePage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={
-                  activeUser.coverImage ||
-                  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80"
+                  activeUser.coverImage && activeUser.coverImage !== "/cover.jpg"
+                    ? activeUser.coverImage
+                    : "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80"
                 }
                 alt="Cover Banner"
                 className="w-full h-full object-cover"
@@ -170,12 +171,15 @@ export default function PublicCreatorProfilePage() {
                 {/* Custom Metadata Badges */}
                 <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 pt-1 border-t border-zinc-900">
                   {activeUser.location && (
-                    <span className="flex items-center gap-1.5 font-medium text-zinc-300">
-                      <MapPin className="w-3.5 h-3.5 text-zinc-500" />
-                      {activeUser.location}
-                    </span>
+                    <div className="mt-2">
+                      <span className="flex items-center gap-1.5 font-medium text-zinc-300">
+                        <MapPin className="w-3.5 h-3.5 text-zinc-500" />
+                        {activeUser.location}
+                      </span>
+                    </div>
                   )}
                   {activeUser.website && (
+                    <div className="mt-2">
                     <a
                       href={activeUser.website.startsWith("http") ? activeUser.website : `https://${activeUser.website}`}
                       target="_blank"
@@ -185,12 +189,15 @@ export default function PublicCreatorProfilePage() {
                       <Globe className="w-3.5 h-3.5 text-zinc-500" />
                       {activeUser.website.replace(/^https?:\/\//, "")}
                     </a>
+                    </div>
                   )}
                   {activeUser.phone && (
+                    <div className="mt-2">
                     <span className="flex items-center gap-1.5 font-medium text-zinc-300 font-mono text-[11px]">
                       <Phone className="w-3.5 h-3.5 text-zinc-500" />
                       {activeUser.phone}
                     </span>
+                  </div>
                   )}
                 </div>
               </div>
@@ -254,7 +261,6 @@ export default function PublicCreatorProfilePage() {
                 <Award className="w-4 h-4 text-zinc-400" />
                 Portfolio Metrics
               </h3>
-              <span className="text-[10px] font-mono text-zinc-500">LIVE</span>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center">

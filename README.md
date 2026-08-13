@@ -39,17 +39,17 @@ Photopedia is a modern, high-performance photography platform built for visual s
 - **Automated Block Guard**: Blocked users are immediately prevented from logging in or accessing authenticated endpoints with clear support instructions.
 - **Support Contact Desk**: Public contact form (`/support`) for account inquiries and unblock appeals.
 
----
-
 ## 🛠️ Technology Stack
 
 | Layer | Technologies Used |
 | :--- | :--- |
 | **Frontend Framework** | Next.js 16 (App Router + Turbopack), React 19, TypeScript |
 | **Styling & Icons** | Tailwind CSS (Vercel/Framer monochrome dark mode palette), Lucide Icons |
-| **Backend Framework** | NestJS (Modular Architecture), Passport JWT Authentication |
-| **Database & ORM** | SQLite (`dev.db`) managed via Prisma ORM & Prisma Studio |
-| **API Client** | Centralized Axios/Fetch API wrapper with JWT interceptors |
+| **Backend Framework** | NestJS (Modular DTO Architecture), Passport JWT Authentication, `class-validator`, `class-transformer` |
+| **Security & Route Protection** | Next.js Edge Middleware route guards (`middleware.ts`) synced via `photopedia_token` HTTP cookie, `@nestjs/passport` JWT Strategy with deactivated accounts check |
+| **API Envelope & Filters** | Global `TransformInterceptor` (Pretty JSON responses), `HttpExceptionFilter` (Standardized Error responses) |
+| **Database & ORM** | SQLite (`dev.db`) managed via Prisma ORM & Prisma Studio (Standardized lowercase `"user"`/`"admin"` roles and `"active"` status) |
+| **API Client** | Centralized Axios/Fetch API wrapper (`app/lib/api.ts`) with automatic response envelope unwrapping & JWT interceptors |
 
 ---
 

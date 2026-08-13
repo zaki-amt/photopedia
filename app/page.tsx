@@ -24,6 +24,7 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
+  Loader2,
 } from "lucide-react";
 
 // Import Swiper React components and modules
@@ -36,11 +37,20 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 
+import { api } from "@/app/lib/api";
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const [user, setUser] = useState<any>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Dynamic DB State
+  const [topCreators, setTopCreators] = useState<any[]>([]);
+  const [galleryItems, setGalleryItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>(["All"]);
+  const [heroSlides, setHeroSlides] = useState<any[]>([]);
+  const [loadingDb, setLoadingDb] = useState(true);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -55,6 +65,72 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    async function loadDataFromDb() {
+      setLoadingDb(true);
+      try {
+        // 1. Fetch Top Creators from DB
+        const creatorsData = await api.getSuggestedCreators(6);
+        setTopCreators(
+          (creatorsData || []).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            username: c.username,
+            role: c.bio || c.cameraBody || "Visual Artist",
+            followers: c._count?.followers !== undefined ? c._count.followers : (c.followersCount || 0),
+            shots: c._count?.posts !== undefined ? c._count.posts : (c.postsCount || 0),
+            avatar: c.avatar || "/avatar.jpg",
+          }))
+        );
+
+        // 2. Fetch Posts for Gallery and Hero Slides from DB
+        const postsData = await api.getPosts();
+        if (Array.isArray(postsData) && postsData.length > 0) {
+          setGalleryItems(
+            postsData.map((p: any) => ({
+              id: p.id,
+              category: p.category || "Landscape",
+              title: p.title,
+              image: p.image,
+              author: p.author?.username ? `@${p.author.username}` : p.author?.name || "@creator",
+            }))
+          );
+
+          setHeroSlides(
+            postsData.slice(0, 4).map((p: any, idx: number) => ({
+              id: p.id || `slide-${idx}`,
+              title: p.title,
+              category: p.category || "Landscape",
+              author: p.author?.name || "Creator",
+              avatar: p.author?.avatar || "/avatar.jpg",
+              image: p.image,
+              exif: p.exif
+                ? `${p.exif.camera || "Camera"} • ${p.exif.lens || "Lens"} • ${p.exif.aperture || "f/2.8"} • ${p.exif.shutter || "1/500s"}`
+                : "Sony A7IV • 24mm f/2.8 • 1/1000s • ISO 100",
+              likes: p.likesCount ? p.likesCount.toLocaleString() : "1,420",
+            }))
+          );
+        }
+
+        // 3. Fetch Dynamic Categories from DB (Top 3 + All)
+        const catsData = await api.getTopCategories();
+        const top3Cats = Array.isArray(catsData) ? catsData.slice(0, 3) : [];
+        if (top3Cats.length > 0) {
+          const names = ["All", ...top3Cats.map((c: any) => c.name)];
+          setCategories(Array.from(new Set(names)));
+        } else {
+          setCategories(["All", "Landscape", "Urban & Street"]);
+        }
+      } catch (err) {
+        console.error("Failed to load DB data for homepage:", err);
+      } finally {
+        setLoadingDb(false);
+      }
+    }
+
+    loadDataFromDb();
+  }, []);
+
   const handleLogout = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("photopedia_token");
@@ -63,67 +139,12 @@ export default function Home() {
     setUser(null);
     setUserMenuOpen(false);
   };
-  // Top Creators Data
-
-  // Hero Featured Slides Data
-  const HERO_SLIDES = [
-    {
-      id: "slide-1",
-      title: "Alpine Horizon Glow",
-      category: "Landscape",
-      author: "Elena Rostova",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80",
-      exif: "Sony A7IV • 24mm f/2.8 • 1/1000s • ISO 100",
-      likes: "1,420",
-    },
-    {
-      id: "slide-2",
-      title: "Tokyo Neon Nights",
-      category: "Urban",
-      author: "Marcus Chen",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-      image: "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1600&q=80",
-      exif: "Leica Q2 • 28mm f/1.7 • 1/250s • ISO 800",
-      likes: "2,890",
-    },
-    {
-      id: "slide-3",
-      title: "Golden Hour Portraiture",
-      category: "Portraits",
-      author: "Sophia Martinez",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80",
-      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1600&q=80",
-      exif: "Canon R5 • 85mm f/1.2 • 1/500s • ISO 160",
-      likes: "980",
-    },
-    {
-      id: "slide-4",
-      title: "Silent Coastal Horizon",
-      category: "Seascape",
-      author: "David Vance",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-      image: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
-      exif: "Nikon Z9 • 14-24mm f/2.8 • 1/800s • ISO 200",
-      likes: "1,830",
-    },
-  ];
-
-  // Category Filter Gallery Data
-  const CATEGORIES = ["All", "Landscape", "Urban", "Portraits", "Architecture", "Astro"];
-
-  const GALLERY_ITEMS = [
-    { id: "g1", category: "Landscape", title: "Misty Alpine Ridge", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80", author: "@elena_photos" },
-    { id: "g2", category: "Urban", title: "Shinjuku After Rain", image: "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80", author: "@marcus_urban" },
-    { id: "g3", category: "Portraits", title: "Natural Light Reflections", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80", author: "@sophia_portraits" },
-    { id: "g4", category: "Architecture", title: "Geometric Curves", image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80", author: "@arch_lens" },
-    { id: "g5", category: "Astro", title: "Stargazing In Atacama", image: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=800&q=80", author: "@astro_vance" },
-    { id: "g6", category: "Landscape", title: "Desert Dunes Twilight", image: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80", author: "@david_nature" },
-  ];
 
   const filteredGallery = activeCategory === "All" 
-    ? GALLERY_ITEMS 
-    : GALLERY_ITEMS.filter((item) => item.category === activeCategory);
+    ? galleryItems 
+    : galleryItems.filter((item) => item.category === activeCategory);
+
+  const visibleGallery = filteredGallery.slice(0, 6);
 
   // Top Creators Data
   const TOP_CREATORS = [
@@ -339,9 +360,9 @@ export default function Home() {
               pagination={{ clickable: true }}
               className="w-full aspect-[16/9] sm:aspect-[21/9]"
             >
-              {HERO_SLIDES.map((slide) => {
-                const catSlug = slide.category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-                const authorSlug = slide.author.toLowerCase().replace(/\s+/g, "_");
+              {heroSlides.map((slide) => {
+                const catSlug = (slide.category || "landscape").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                const authorSlug = (slide.author || "creator").toLowerCase().replace(/\s+/g, "_");
                 return (
                   <SwiperSlide key={slide.id}>
                     <div className="relative w-full h-full group/slide">
@@ -376,9 +397,12 @@ export default function Home() {
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={slide.avatar}
+                              src={slide.avatar || "/avatar.jpg"}
                               alt={slide.author}
                               className="w-8 h-8 rounded-full object-cover border border-zinc-700 shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/avatar.jpg";
+                              }}
                             />
                             <div className="text-left">
                               <p className="text-xs font-semibold text-white font-heading group-hover/author:underline">
@@ -414,14 +438,14 @@ export default function Home() {
             </div>
 
             {/* Category Filter Pills */}
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => (
+            <div className="flex flex-wrap gap-2 overflow-x-auto::-webkit-scrollbar">
+              {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`text-xs font-mono px-3.5 py-1.5 rounded-lg border transition-all ${
                     activeCategory === cat
-                      ? "bg-white text-black border-white font-semibold"
+                      ? "bg-white text-black border-white font-semibold shadow-sm"
                       : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
                   }`}
                 >
@@ -432,28 +456,36 @@ export default function Home() {
           </div>
 
           {/* Interactive Photo Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGallery.map((item) => (
-              <div
-                key={item.id}
-                className="group relative aspect-[4/3] bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-700 transition-all shadow-md"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5">
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
-                    {item.category}
-                  </span>
-                  <h4 className="font-heading text-base font-bold text-white mb-1">{item.title}</h4>
-                  <p className="text-xs font-mono text-zinc-300">{item.author}</p>
+          {loadingDb ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-[4/3] rounded-xl bg-zinc-950 border border-zinc-800 shimmer-effect" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visibleGallery.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative aspect-[4/3] bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-700 transition-all duration-500 shadow-md animate-in fade-in zoom-in-95 duration-500"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
+                      {item.category}
+                    </span>
+                    <h4 className="font-heading text-base font-bold text-white mb-1">{item.title}</h4>
+                    <p className="text-xs font-mono text-zinc-300">{item.author}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* SECTION 3: Live Stats & Platform Metrics */}
@@ -510,51 +542,62 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TOP_CREATORS.map((creator) => (
-              <div
-                key={creator.username}
-                className="p-6 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-6"
-              >
-                <div className="space-y-4">
-                  <Link href={`/creators/${creator.username}`} className="flex items-center gap-4 group">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={creator.avatar}
-                      alt={creator.name}
-                      className="w-14 h-14 rounded-full object-cover border border-zinc-700 shrink-0 group-hover:border-zinc-500 transition-colors"
-                    />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h3 className="font-heading text-base font-bold text-white group-hover:underline">{creator.name}</h3>
-                        <CheckCircle2 className="w-4 h-4 text-white fill-white stroke-black" />
+          {loadingDb ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-6 rounded-xl bg-zinc-950 border border-zinc-800 h-44 shimmer-effect" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {topCreators.map((creator) => (
+                <div
+                  key={creator.username}
+                  className="p-6 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-6"
+                >
+                  <div className="space-y-4">
+                    <Link href={`/creators/${creator.username}`} className="flex items-center gap-4 group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={creator.avatar || "/avatar.jpg"}
+                        alt={creator.name}
+                        className="w-14 h-14 rounded-full object-cover border border-zinc-700 shrink-0 group-hover:border-zinc-500 transition-colors"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/avatar.jpg";
+                        }}
+                      />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-heading text-base font-bold text-white group-hover:underline">{creator.name}</h3>
+                          <CheckCircle2 className="w-4 h-4 text-white fill-white stroke-black" />
+                        </div>
+                        <p className="text-xs font-mono text-zinc-500">@{creator.username}</p>
                       </div>
-                      <p className="text-xs font-mono text-zinc-500">@{creator.username}</p>
+                    </Link>
+
+                    <p className="text-xs text-zinc-400 leading-relaxed truncate">{creator.role}</p>
+                  </div>
+
+                  <div className="pt-4 border-t border-zinc-900 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-white font-heading">{creator.followers}</span>
+                      <span className="text-[10px] font-mono text-zinc-500 ml-1">Followers</span>
                     </div>
-                  </Link>
-
-                  <p className="text-xs text-zinc-400 leading-relaxed">{creator.role}</p>
-                </div>
-
-                <div className="pt-4 border-t border-zinc-900 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-white font-heading">{creator.followers}</span>
-                    <span className="text-[10px] font-mono text-zinc-500 ml-1">Followers</span>
+                    <div>
+                      <span className="font-bold text-white font-heading">{creator.shots}</span>
+                      <span className="text-[10px] font-mono text-zinc-500 ml-1">Shots</span>
+                    </div>
+                    <Link
+                      href={`/creators/${creator.username}`}
+                      className="bg-zinc-900 border border-zinc-800 hover:bg-white hover:text-black text-zinc-300 px-3 py-1 rounded text-[11px] font-mono transition-all"
+                    >
+                      View Portfolio
+                    </Link>
                   </div>
-                  <div>
-                    <span className="font-bold text-white font-heading">{creator.shots}</span>
-                    <span className="text-[10px] font-mono text-zinc-500 ml-1">Shots</span>
-                  </div>
-                  <Link
-                    href={`/creators/${creator.username}`}
-                    className="bg-zinc-900 border border-zinc-800 hover:bg-white hover:text-black text-zinc-300 px-3 py-1 rounded text-[11px] font-mono transition-all"
-                  >
-                    View Portfolio
-                  </Link>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* SECTION 5: Testimonials */}

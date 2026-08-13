@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '@nestjs/passport';
+import { UpdateProfileDto } from './dto';
 
 @Controller('users')
 export class UsersController {
@@ -48,7 +49,7 @@ export class UsersController {
   @Put('profile')
   async updateProfile(
     @Request() req: any,
-    @Body() dto: { name?: string; username?: string; email?: string; avatar?: string; bio?: string },
+    @Body() dto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(req.user.id, dto);
   }
