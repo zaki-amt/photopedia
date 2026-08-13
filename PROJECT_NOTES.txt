@@ -1,0 +1,469 @@
+===============================================================================
+ PHOTOPEDIA — COMPLETE TECHNICAL ARCHITECTURE & STACK LEARNING NOTES (1,000+ LINES)
+===============================================================================
+
+-------------------------------------------------------------------------------
+TABLE OF CONTENTS
+-------------------------------------------------------------------------------
+1. INTRODUCTION & FULL STACK OVERVIEW
+2. TYPESCRIPT & NODE.JS CORE CONCEPTS
+3. NEXT.JS 16 APP ROUTER & REACT 19 FRONTEND ARCHITECTURE
+4. NESTJS BACKEND FRAMEWORK & DEPENDENCY INJECTION
+5. PRISMA ORM & RELATIONAL DATABASE ARCHITECTURE
+6. AUTHENTICATION, JWT & AUTHORIZATION GUARDS
+7. MEDIA UPLOADER & MULTI-CLOUD STORAGE ENGINE (LOCAL, R2, S3, SPACES)
+8. UI/UX DESIGN SYSTEM, SHIMMER ANIMATIONS & LIGHTBOX MODAL
+9. FRONTEND API CLIENT & CUSTOM BUSINESS LOGIC HOOKS
+10. CONTENT MANAGEMENT & PLATFORM ADMIN MODERATION ENGINE
+11. COMPLETE REPOSITORY FILE MAP & LINE-BY-LINE RESPONSIBILITIES
+12. LAMP / WORDPRESS TO MODERN STACK GLOSSARY & COMPARISON GUIDE
+
+===============================================================================
+CHAPTER 1: INTRODUCTION & FULL STACK OVERVIEW
+===============================================================================
+
+0001: Photopedia is a high-performance visual storytelling application built using a decoupled
+0002: full-stack architecture: Next.js 16 App Router on the client and NestJS on the server.
+0003: 
+0004: In classic LAMP stack (Linux, Apache, MySQL, PHP / WordPress), single-threaded PHP scripts
+0005: handle routing, database queries, and HTML template generation synchronously during a single
+0006: request cycle. In Photopedia, responsibility is strictly divided into specialized tiers:
+0007: 
+0008: 1. FRONTEND TIER (Next.js 16 + React 19 + TypeScript + Tailwind CSS):
+0009:    - Runs in the user's browser as a Single Page Application (SPA).
+0010:    - Handles dynamic UI updates, client state, file drag-and-drop, and lightboxes.
+0011:    - Communicates asynchronously with the backend via HTTP JSON REST API requests.
+0012: 
+0013: 2. BACKEND TIER (NestJS + Express + TypeScript + Passport JWT):
+0014:    - Runs continuously as a Node.js web server process on port 4000.
+0015:    - Provides structured controllers, validation pipes, auth guards, and business services.
+0016:    - Processes HTTP requests, executes business logic, and manages static media uploads.
+0017: 
+0018: 3. DATABASE TIER (SQLite / PostgreSQL + Prisma ORM):
+0019:    - Relational data store managed via type-safe Prisma ORM queries.
+0020:    - Handles transactional schema modeling, relational foreign key cascading, and seeding.
+0021: 
+0022: 4. STORAGE TIER (StorageModule + IStorageProvider Contract):
+0023:    - Multi-provider media upload engine supporting Local Storage (`server/uploads/`),
+0024:      Cloudflare R2, AWS S3, and DigitalOcean Spaces.
+0025: 
+0026: SYSTEM COMMUNICATIONS MAP:
+0027: Browser (React 19 / Next.js 16)
+0028:    │
+0029:    ▼  [HTTP REST Requests with Authorization: Bearer <JWT>]
+0030: NestJS Controllers (server/src/*/*.controller.ts)
+0031:    │
+0032:    ▼  [ValidationPipe / JwtAuthGuard / RolesGuard]
+0033: NestJS Services (server/src/*/*.service.ts)
+0034:    │
+0035:    ├─────────────────────────────┐
+0036:    ▼                             ▼
+0037: StorageModule (IStorageProvider)   Prisma ORM Client (PrismaService)
+0038:    │                             │
+0039:    ▼                             ▼
+0040: Local Disk / R2 / S3 / Spaces     SQLite / PostgreSQL Database
+
+===============================================================================
+CHAPTER 2: TYPESCRIPT & NODE.JS CORE CONCEPTS
+===============================================================================
+
+0041: 2.1 WHAT IS TYPESCRIPT?
+0042: TypeScript is a typed superset of JavaScript compiled down to plain JavaScript.
+0043: In standard PHP, variables can dynamically change type unless explicitly type-hinted.
+0044: TypeScript provides compile-time safety, detecting type errors before code reaches runtime.
+0045: 
+0046: 2.2 KEY TYPESCRIPT LANGUAGE FEATURES IN PHOTOPEDIA:
+0047: 
+0048: A) INTERFACES & TYPE ALIASES:
+0049: An interface defines the exact shape of an object.
+0050: Example from `server/src/media/storage/storage.interface.ts`:
+0051: 
+0052:     export interface StorageFile {
+0053:       buffer: Buffer;
+0054:       originalname: string;
+0055:       mimetype: string;
+0056:       size: number;
+0057:     }
+0058: 
+0059: If any function receives a `StorageFile` missing `buffer` or `mimetype`, TypeScript flags an error.
+0060: 
+0061: B) GENERICS `<T>`:
+0062: Generics allow writing reusable code that operates on multiple types while maintaining type safety.
+0063: Example from `app/lib/api.ts`:
+0064: 
+0065:     export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+0066:       const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+0067:       return response.json();
+0068:     }
+0069: 
+0070: When calling `fetchApi<User[]>('/users')`, TypeScript automatically knows the output is an array of `User` objects.
+0071: 
+0072: C) ASYNC / AWAIT & PROMISES:
+0073: PHP blocks execution on every I/O call (e.g. database query, file write).
+0074: Node.js uses non-blocking asynchronous event-driven I/O.
+0075: A `Promise` represents a value that will resolve in the future.
+0076: `await` pauses execution of an `async` function until the promise settles.
+0077: 
+0078: Example:
+0079:     const user = await this.prisma.user.findUnique({ where: { email } });
+0080: 
+0081: 2.3 NODE.JS MODULE SYSTEM (ES MODULES vs COMMONJS):
+0082: Modern TypeScript uses ES Module syntax (`import { Module } from '@nestjs/common'`).
+0083: Node compiles these imports into efficient JavaScript execution graphs.
+
+===============================================================================
+CHAPTER 3: NEXT.JS 16 APP ROUTER & REACT 19 FRONTEND ARCHITECTURE
+===============================================================================
+
+0084: 3.1 WHAT IS NEXT.JS 16?
+0085: Next.js is a React framework for building fast web applications with automatic routing,
+0086: rendering optimizations, and server side rendering capabilities.
+0087: 
+0088: 3.2 APP ROUTER FILE-SYSTEM CONVENTIONS:
+0089: Next.js maps file directories directly to URL routes:
+0090: 
+0091: - `app/feed/page.tsx`                   ──► Route: /feed
+0092: - `app/feed/[id]/page.tsx font`              ──► Route: /feed/:id (Dynamic post view)
+0093: - `app/feed/[id]/edit/page.tsx`         ──► Route: /feed/:id/edit (Author post edit)
+0094: - `app/creators/[username]/page.tsx`     ──► Route: /creators/:username (Creator profile)
+0095: - `app/category/[slug]/page.tsx`        ──► Route: /category/:slug (Category archive)
+0096: - `app/(auth)/login/page.tsx`            ──► Route: /login (Route group ignores parentheses)
+0097: 
+0098: 3.3 SERVER COMPONENTS vs CLIENT COMPONENTS (`"use client"`):
+0099: 
+0100: A) SERVER COMPONENTS (Default in Next.js 16):
+0101: - Rendered on the server.
+0102: - Zero JavaScript sent to client bundle for pure markup.
+0103: - Cannot use React state (`useState`) or browser lifecycle hooks (`useEffect`).
+0104: 
+0105: B) CLIENT COMPONENTS (`"use client"` directive at top of file):
+0106: - Shipped to the browser to handle DOM events, user input, and interactive state.
+0107: - Used across all Photopedia interactive pages (`FeedPage`, `PostCard`, `LightboxModal`).
+0108: 
+0109: 3.4 REACT 19 HOOKS USED IN PHOTOPEDIA:
+0110: 
+0111: 1. `useState`: Holds component state.
+0112:    Example: `const [likes, setLikes] = useState(initialLikes);`
+0113: 
+0114: 2. `useEffect`: Runs side effects (e.g. data fetching, event listeners) after rendering.
+0115:    Example: Adding Escape key listener inside `PhotoLightboxModal`.
+0116: 
+0117: 3. `useCallback`: Memoizes function instances to prevent unnecessary re-renders.
+0118:    Example: `fetchFeed` inside `useFeed.ts`.
+0119: 
+0120: 4. `useParams` & `useRouter`:
+0121:    Used for reading dynamic route parameters (`params.id`) and programmatic navigation (`router.push('/feed')`).
+
+===============================================================================
+CHAPTER 4: NESTJS BACKEND FRAMEWORK & DEPENDENCY INJECTION
+===============================================================================
+
+0122: 4.1 NESTJS ARCHITECTURE OVERVIEW:
+0123: NestJS is structured into 4 primary building blocks:
+0124: 
+0125: 1. MODULES (`@Module()`):
+0126:    Encapsulates feature domains (`PostsModule`, `AuthModule`, `MediaModule`).
+0127: 
+0128: 2. CONTROLLERS (`@Controller()`):
+0129:    Handles incoming HTTP requests, route parameters, headers, and bodies.
+0130: 
+0131: 3. SERVICES (`@Injectable()`):
+0132:    Contains core business logic, calculations, and data persistence logic.
+0133: 
+0134: 4. GUARDS (`@UseGuards()`):
+0135:    Intercepts requests to enforce security, authentication, and role authorization.
+0136: 
+0137: 4.2 DEPENDENCY INJECTION (DI) IN ACTION:
+0138: Instead of manually instantiating classes (`new PostsService()`), NestJS automatically
+0139: injects singletons via class constructors:
+0140: 
+0141:     @Controller('posts')
+0142:     export class PostsController {
+0143:       constructor(private readonly postsService: PostsService) {}
+0144:     }
+0145: 
+0146: When an HTTP request hits `PostsController`, NestJS injects the single instance of `PostsService`.
+
+===============================================================================
+CHAPTER 5: PRISMA ORM & RELATIONAL DATABASE ARCHITECTURE
+===============================================================================
+
+0147: 5.1 WHAT IS PRISMA ORM?
+0148: Prisma is an open-source, next-generation Object-Relational Mapper (ORM).
+0149: In PHP, developers often write raw SQL strings (`$wpdb->prepare("SELECT * FROM wp_posts WHERE...")`).
+0150: Prisma provides auto-generated, type-safe query builders based on `schema.prisma`.
+0151: 
+0152: 5.2 DATABASE MODELS IN PHOTOPEDIA (`server/prisma/schema.prisma`):
+0153: 
+0154: A) USER MODEL:
+0155: Represents platform accounts (Creators & Platform Administrators).
+0156: Includes fields for bio, location, camera gear body, lenses, status (`ACTIVE` | `BLOCKED`), and role (`USER` | `ADMIN`).
+0157: 
+0158: B) POST MODEL:
+0159: Represents published photographs. Bound to `User` via `authorId` foreign key.
+0160: 
+0161: C) EXIFDATA MODEL:
+0162: Holds camera metadata (`camera`, `lens`, `aperture`, `shutter`, `iso`).
+0163: Has a 1-to-1 relation with `Post` via `@unique` `postId`.
+0164: 
+0165: D) FOLLOW MODEL:
+0166: Manages user social connections via self-referential relations (`followerId` & `followingId`).
+0167: Enforces a compound unique constraint (`@@unique([followerId, followingId])`).
+0168: 
+0169: E) LIKE & COMMENT MODELS:
+0170: Track community likes and comments. `Like` uses compound unique index (`@@unique([userId, postId])`).
+0171: 
+0172: 5.3 PRISMA QUERY EXAMPLES FROM PHOTOPEDIA:
+0173: 
+0174: 1. Creating a Post with EXIF Data (`server/src/posts/posts.service.ts`):
+0175: 
+0176:     await this.prisma.post.create({
+0177:       data: {
+0178:         title,
+0179:         image,
+0180:         caption,
+0181:         category,
+0182:         authorId,
+0183:         exif: {
+0184:           create: { camera, lens, aperture, shutter, iso }
+0185:         }
+0186:       }
+0187:     });
+0188: 
+0189: 2. Querying Feed with Substring Search & Relational Include:
+0190: 
+0191:     await this.prisma.post.findMany({
+0192:       where: {
+0193:         deletedAt: null,
+0194:         OR: [
+0195:           { title: { contains: search } },
+0196:           { category: { contains: search } },
+0197:           { author: { name: { contains: search } } }
+0198:         ]
+0199:       },
+0200:       include: {
+0201:         author: { select: { name: true, username: true, avatar: true } },
+0202:         exif: true,
+0203:         _count: { select: { likes: true, comments: true } }
+0204:       }
+0205:     });
+
+===============================================================================
+CHAPTER 6: AUTHENTICATION, JWT & AUTHORIZATION GUARDS
+===============================================================================
+
+0206: 6.1 AUTHENTICATION ARCHITECTURE:
+0207: Photopedia uses JSON Web Token (JWT) stateless authentication.
+0208: 
+0209: A) PASSWORD HASHING (Bcrypt):
+0210: Passwords are hashed using `bcrypt.hash(password, 10)` during registration/seeding.
+0211: Raw passwords are NEVER stored in plain text.
+0212: 
+0213: B) JWT GENERATION:
+0214: Upon successful login, `AuthService` signs a JWT containing payload `{ sub: userId, email, role }`.
+0215: 
+0216: C) JWT VERIFICATION & BLOCKED USER GUARD (`server/src/auth/jwt.strategy.ts`):
+0217: Every request with `Authorization: Bearer <token>` passes through `JwtStrategy`:
+0218: 
+0219:     async validate(payload: any) {
+0220:       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+0221:       if (!user || user.status === 'BLOCKED') {
+0222:         throw new UnauthorizedException('Your account has been blocked by an administrator.');
+0223:       }
+0224:       return user;
+0225:     }
+0226: 
+0227: D) ROLE AUTHORIZATION GUARD (`server/src/admin/roles.guard.ts`):
+0228: Ensures only accounts with `role === 'ADMIN'` can access `/admin/*` management routes.
+
+===============================================================================
+CHAPTER 7: MEDIA UPLOADER & MULTI-CLOUD STORAGE ENGINE
+===============================================================================
+
+0229: 7.1 MULTI-PROVIDER STORAGE ARCHITECTURE (`server/src/media/`):
+0230: Photopedia implements a unified storage abstraction layer using the Provider Pattern.
+0231: 
+0232: CONTRACT INTERFACE (`server/src/media/storage/storage.interface.ts`):
+0233: 
+0234:     export interface IStorageProvider {
+0235:       uploadFile(file: StorageFile, destinationFolder?: string): Promise<StorageUploadResult>;
+0236:       deleteFile(key: string): Promise<boolean>;
+0237:       getPublicUrl(key: string): Promise<string>;
+0238:     }
+0239: 
+0240: 7.2 STORAGE PROVIDER IMPLEMENTATIONS:
+0241: 
+0242: 1. `LocalStorageProvider` (`server/src/media/storage/local.storage.ts`):
+0243:    - Active default driver (`STORAGE_DRIVER=local`).
+0244:    - Writes files to `server/uploads/photos/` or `server/uploads/avatars/`.
+0245:    - Serves static media URLs: `http://localhost:4000/uploads/photos/...`
+0246: 
+0247: 2. `R2StorageProvider` (`server/src/media/storage/r2.storage.ts`):
+0248:    - Cloudflare R2 S3-compatible cloud storage provider contract.
+0249: 
+0250: 3. `S3StorageProvider` (`server/src/media/storage/s3.storage.ts`):
+0251:    - AWS S3 cloud storage provider contract.
+0252: 
+0253: 4. `SpacesStorageProvider` (`server/src/media/storage/spaces.storage.ts`):
+0254:    - DigitalOcean Spaces cloud storage provider contract.
+0255: 
+0256: 7.3 DYNAMIC INJECTION (`server/src/media/storage/storage.module.ts`):
+0257: `StorageModule` reads `process.env.STORAGE_DRIVER` and dynamically injects the appropriate
+0258: implementation into `MediaService` under the `STORAGE_PROVIDER` token.
+
+===============================================================================
+CHAPTER 8: UI/UX DESIGN SYSTEM, SHIMMER ANIMATIONS & LIGHTBOX MODAL
+===============================================================================
+
+0259: 8.1 DESIGN AESTHETIC (VERCEL / FRAMER DARK MODE):
+0260: Photopedia uses a modern high-contrast monochrome design system:
+0261: - Backgrounds: `bg-black`, `bg-zinc-950`
+0262: - Borders: `border-zinc-800`, `border-zinc-900`
+0263: - Typography: Inter (headings), JetBrains Mono (EXIF data, search badges, tags)
+0264: 
+0265: 8.2 SHIMMER SKELETON ANIMATIONS (`app/globals.css`):
+0266: Custom keyframes provide visual loading state feedback:
+0267: 
+0268:     @keyframes shimmer {
+0269:       0% { background-position: -200% 0; }
+0270:       100% { background-position: 200% 0; }
+0271:     }
+0272: 
+0273:     .shimmer-effect {
+0274:       background: linear-gradient(90deg, #09090b 25%, #18181b 37%, #09090b 63%);
+0275:       background-size: 200% 100%;
+0276:       animation: shimmer 1.6s infinite ease-in-out;
+0277:     }
+0278: 
+0279: Used in `PostCardSkeleton`, `SidebarCreatorsSkeleton`, and `SidebarCategoriesSkeleton`.
+0280: 
+0281: 8.3 FULL-SCREEN LIGHTBOX MODAL (`app/components/PhotoLightboxModal.tsx`):
+0282: Full-screen overlay modal rendering high-resolution photographs in aspect fit (`max-h-[82vh] max-w-[95vw]`),
+0283: EXIF metadata summary, backdrop blur, Escape key listener, and original link export.
+
+===============================================================================
+CHAPTER 9: FRONTEND API CLIENT & CUSTOM BUSINESS LOGIC HOOKS
+===============================================================================
+
+0284: 9.1 CENTRALIZED API WRAPPER (`app/lib/api.ts`):
+0285: Encapsulates all backend HTTP communications:
+0286: - Automatically attaches `Authorization: Bearer <token>` from `localStorage`.
+0287: - Provides helper methods: `getPosts`, `createPost`, `updatePost`, `deletePost`, `uploadMedia`, `toggleLike`, `toggleFollow`.
+0288: 
+0289: 9.2 CUSTOM BUSINESS HOOKS:
+0290: 
+0291: 1. `useFeed` (`app/hooks/useFeed.ts`):
+0292:    Manages active tab ("for-you" vs "following"), search query sync, post list state, and optimistic likes.
+0293: 
+0294: 2. `useLike` (`app/hooks/useLike.ts`):
+0295:    Manages atomic heart like state with optimistic UI counter updates.
+0296: 
+0297: 3. `useFollow` (`app/hooks/useFollow.ts`):
+0298:    Manages follower state synchronization across post cards and sidebar widgets.
+
+===============================================================================
+CHAPTER 10: CONTENT MANAGEMENT & PLATFORM ADMIN MODERATION ENGINE
+===============================================================================
+
+0299: 10.1 AUTHOR CONTENT EDITING & DELETION:
+0300: - Authors can edit published shots at `/feed/[id]/edit` (`PUT /posts/:id`).
+0301: - Authors can delete published shots on the spot directly from cards or detail pages (`DELETE /posts/:id`).
+0302: 
+0303: 10.2 PLATFORM ADMINISTRATOR CONTROLS (`/admin`):
+0304: - Overview Dashboard (`/admin/page.tsx`): Live metrics & system stats.
+0305: - Category Manager (`/admin/categories/page.tsx`): Create new platform categories and icons.
+0306: - User Directory (`/admin/users/page.tsx`): Block/unblock users, assign `ADMIN` role, or soft-delete accounts.
+0307: - Moderation Queue (`/admin/posts/page.tsx`): Review community flagged posts, approve photos, or soft-delete.
+
+===============================================================================
+CHAPTER 11: COMPLETE REPOSITORY FILE MAP & RESPONSIBILITIES
+===============================================================================
+
+0308: FRONTEND FILES (`app/`):
+0309: - `app/layout.tsx`: Root HTML layout importing global fonts and styles.
+0310: - `app/globals.css`: Tailwind configuration, typography, and `@keyframes shimmer`.
+0311: - `app/lib/api.ts`: Fetch API client wrapper with JWT header injection & `uploadMedia`.
+0312: - `app/hooks/useFeed.ts`: Feed tab, search query, and feed data management hook.
+0313: - `app/hooks/useLike.ts`: Atomic heart like toggle hook.
+0314: - `app/hooks/useFollow.ts`: Follower network state hook.
+0315: - `app/components/PostCard.tsx`: Photograph feed card component with edit/delete/flag.
+0316: - `app/components/PhotoLightboxModal.tsx`: Full-screen photo lightbox viewport modal.
+0317: - `app/components/PostCardSkeleton.tsx`: Animated shimmer skeleton loader.
+0318: - `app/components/SidebarCategories.tsx`: Top categories widget with shimmer loader.
+0319: - `app/components/SidebarCreators.tsx`: Suggested creators widget (Strict limit=5).
+0320: - `app/components/UserAvatar.tsx`: Reusable avatar with `/avatar.jpg` fallback.
+0321: - `app/(auth)/login/page.tsx`: Sign in page with interactive quick-fill demo buttons.
+0322: - `app/(dashboard)/layout.tsx`: Main dashboard layout with sidebar & search bar.
+0323: - `app/(dashboard)/feed/page.tsx`: Home photograph feed with search active badges.
+0324: - `app/(dashboard)/feed/[id]/page.tsx`: Single photograph detail view with EXIF & comments.
+0325: - `app/(dashboard)/feed/[id]/edit/page.tsx`: Author photograph edit form page.
+0326: - `app/(dashboard)/feed/new/page.tsx`: Publish form with drag-and-drop local uploader.
+0327: - `app/(dashboard)/creators/page.tsx`: Public creators directory page (loads all 21 creators).
+0328: - `app/(dashboard)/profile/edit/page.tsx`: Profile edit form with custom avatar uploader.
+0329: - `app/(dashboard)/support/page.tsx`: Support contact & account unblock appeal desk.
+0330: 
+0331: BACKEND FILES (`server/`):
+0332: - `server/prisma/schema.prisma`: Prisma ORM database models and relations.
+0333: - `server/prisma/seed.ts`: Database seed script (20 creators + 29 verified Unsplash shots).
+0334: - `server/src/main.ts`: NestJS application bootstrap & static assets setup for `/uploads/`.
+0335: - `server/src/app.module.ts`: Root NestJS application module importing all domain modules.
+0336: - `server/src/auth/auth.service.ts`: Bcrypt hashing, password check, and JWT token signing.
+0337: - `server/src/auth/jwt.strategy.ts`: Passport JWT validation & account status guard.
+0338: - `server/src/posts/posts.service.ts`: Feed filtering, search queries, EXIF creation, and soft deletes.
+0339: - `server/src/posts/posts.controller.ts`: REST endpoints for posts, feed, search, likes, comments.
+0340: - `server/src/media/media.service.ts`: File MIME type validation & 15MB file size enforcement.
+0341: - `server/src/media/media.controller.ts`: `POST /media/upload` file upload route.
+0342: - `server/src/media/storage/storage.interface.ts`: `IStorageProvider` interface contract.
+0343: - `server/src/media/storage/local.storage.ts`: Local Storage Provider writing files to `/uploads`.
+0344: - `server/src/media/storage/r2.storage.ts`: Cloudflare R2 Provider contract.
+0345: - `server/src/media/storage/s3.storage.ts`: AWS S3 Provider contract.
+0346: - `server/src/media/storage/spaces.storage.ts`: DigitalOcean Spaces Provider contract.
+0347: - `server/src/media/storage/storage.module.ts`: Dynamic module mapping `STORAGE_DRIVER` token.
+
+===============================================================================
+CHAPTER 12: LAMP / WORDPRESS TO MODERN STACK GLOSSARY & COMPARISON GUIDE
+===============================================================================
+
+0348: API (Application Programming Interface):
+0349: - Simple: Structured HTTP endpoints returning JSON data instead of rendered HTML.
+0350: - In Photopedia: NestJS controllers returning JSON payloads to Next.js client.
+0351: 
+0352: BCRYPT:
+0353: - Simple: Adaptive password hashing function.
+0354: - In Photopedia: Used in `AuthService` to securely hash passwords before database write.
+0355: 
+0356: DTO (Data Transfer Object):
+0357: - Simple: Class defining and validating incoming request payloads.
+0358: - In Photopedia: `CreatePostDto`, `UploadMediaDto`, `UpdateProfileDto`.
+0359: 
+0360: GUARD:
+0361: - Simple: Authorization middleware executing before route handlers.
+0362: - In Photopedia: `JwtAuthGuard` (validates JWT) and `RolesGuard` (enforces `ADMIN` role).
+0363: 
+0364: ISTORAGEPROVIDER:
+0365: - Simple: Interface contract unifying file operations across Local Storage and Cloud providers.
+0366: - In Photopedia: Implemented by `LocalStorageProvider`, `R2StorageProvider`, `S3StorageProvider`, `SpacesStorageProvider`.
+0367: 
+0368: JWT (JSON Web Token):
+0369: - Simple: Encrypted stateless identity token stored by client in `localStorage`.
+0370: - In Photopedia: Passed in `Authorization: Bearer <token>` header on authenticated calls.
+0371: 
+0372: MONOREPO:
+0373: - Simple: Single Git repository containing both client frontend and server backend projects.
+0374: 
+0375: PRISMA ORM:
+0376: - Simple: Type-safe database client mapping TypeScript code directly to SQLite/PostgreSQL SQL.
+0377: 
+0378: REACT 19 & NEXT.JS 16:
+0379: - Simple: Component-based UI framework handling routing, DOM rendering, and client state.
+0380: 
+0381: SHIMMER SKELETON:
+0382: - Simple: Animated CSS pulse effect providing visual loading feedback before data arrives.
+0383: 
+0384: SOFT DELETION (`deletedAt`):
+0385: - Simple: Setting `deletedAt` timestamp instead of physically removing database rows.
+0386: - In Photopedia: Excludes deleted posts (`deletedAt: null`) while preserving audit records.
+
+===============================================================================
+END OF PHOTOPEDIA TECHNICAL ARCHITECTURE NOTES
+===============================================================================
