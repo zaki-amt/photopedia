@@ -22,16 +22,16 @@ User Action (Browser)
 Next.js App Router (Client / Server Component)
        │ (HTTP Fetch via app/lib/api.ts)
        ▼
-NestJS REST API Controller (server/src/*/*.controller.ts)
+NestJS REST API Controller (apps/api/src/*/*.controller.ts)
        │ (Pipes / DTO Validation / JwtAuthGuard)
        ▼
-NestJS Service (server/src/*/*.service.ts)
+NestJS Service (apps/api/src/*/*.service.ts)
        │ (Business Logic & Transactions)
        ▼
-Prisma ORM Client (server/src/prisma/prisma.service.ts)
+Prisma ORM Client (apps/api/src/prisma/prisma.service.ts)
        │ (SQL Generation & Type-Safe Querying)
        ▼
-SQLite / PostgreSQL Database (server/prisma/dev.db)
+SQLite / PostgreSQL Database (apps/api/prisma/dev.db)
 ```
 
 ---
@@ -47,7 +47,7 @@ SQLite / PostgreSQL Database (server/prisma/dev.db)
 | **WordPress Plugins** | **NestJS Modules (`@Module()`)** | Encapsulated feature bundles (`PostsModule`, `MediaModule`, `AuthModule`) with dependency injection rather than action/filter hooks. |
 | **WordPress REST API (`/wp-json`)** | **NestJS Controllers (`@Controller()`)** | REST endpoints declared via class decorators (`@Get()`, `@Post()`, `@UseGuards()`) returning automatic JSON objects. |
 | **WP Hooks (`add_action`, `add_filter`)** | **NestJS Middleware, Guards, Interceptors** | Request pipeline interceptors and guards (`JwtAuthGuard`, `RolesGuard`) handle request interception & authentication. |
-| **`wp_upload_dir()` / Media Library** | **StorageModule (`IStorageProvider`)** | Uploads processed via Multer (`FileInterceptor`) to local disk (`server/uploads/`) or S3/R2/Spaces cloud providers. |
+| **`wp_upload_dir()` / Media Library** | **StorageModule (`IStorageProvider`)** | Uploads processed via Multer (`FileInterceptor`) to local disk (`apps/api/uploads/`) or S3/R2/Spaces cloud providers. |
 | **WP Options Table / `wp-config.php`** | `.env` + NestJS `@nestjs/config` | Environment variables loaded dynamically via `ConfigModule` and accessed via `process.env`. |
 
 ---
@@ -60,25 +60,23 @@ A **monorepo** (monolithic repository) houses both the frontend client and backe
 ### Photopedia Monorepo Layout
 ```text
 photopedia/                           # Monorepo Root
-├── app/                              # Next.js 16 Frontend App Router
-│   ├── (auth)/                       # Authentication views (/login, /register)
-│   ├── (dashboard)/                  # Dashboard views (/feed, /profile, /admin, /creators)
-│   ├── components/                   # React UI components (PostCard, Lightbox, Skeletons)
-│   ├── hooks/                        # Business logic hooks (useFeed, useLike, useFollow)
-│   └── lib/                          # API client (api.ts)
-├── server/                           # NestJS Backend Application
-│   ├── prisma/                       # Prisma Schema (schema.prisma), seed script, dev.db
-│   ├── uploads/                      # Local uploaded media storage
-│   └── src/                          # NestJS TypeScript Source Code
-│       ├── admin/                    # Admin overview, user block, category manager
-│       ├── auth/                     # JWT login, registration, passport strategy
-│       ├── media/                    # Local & Multi-cloud storage engine
-│       ├── posts/                    # Feed, EXIF, likes, comments, edit, delete, flag
-│       ├── users/                    # Profiles, follow network, suggested creators
-│       └── prisma/                   # Prisma ORM database service
+├── apps/
+│   ├── web/                          # Next.js 16 Frontend App Router App
+│   │   ├── app/                      # Page views, layout, and client hooks
+│   │   └── package.json              # Web app dependencies config
+│   │
+│   └── api/                          # NestJS Backend API App
+│       ├── src/                      # Admin, Auth, Media, Posts, Users feature modules
+│       ├── prisma/                   # Prisma schema.prisma, SQLite dev.db, seed.ts
+│       ├── uploads/                  # Local media files directory
+│       └── package.json              # API app dependencies config
+│
+├── packages/                         # Shared utilities / DTO models (optional)
+├── pnpm-workspace.yaml               # Workspace configuration mapping
+├── package.json                      # Workspace orchestrator package.json
 ├── README.md                         # Project overview
 ├── project_documentation.md         # Architecture documentation
-├── project_user_stories_audit.md     # Audit checklist (29 User Stories)
+├── project_user_stories_audit.md     # Audit checklist
 └── PROJECT_GUIDE.md                  # This learning guide
 ```
 
@@ -142,7 +140,7 @@ HTTP Response (JSON payload returned to client)
 
 ## 6. Prisma ORM & Database Layer
 
-### Prisma Models (`server/prisma/schema.prisma`)
+### Prisma Models (`apps/api/prisma/schema.prisma`)
 Prisma defines database tables, columns, and relationships in `schema.prisma`:
 
 ```prisma
@@ -279,7 +277,7 @@ model ModerationLog {
 Photopedia uses a **Provider Pattern** (`IStorageProvider`) to manage file uploads:
 
 ```
-server/src/media/
+apps/api/src/media/
 ├── media.controller.ts        # POST /media/upload, GET /media/url/*, DELETE /media/:key
 ├── media.service.ts           # Media validation (MIME types, 15MB limit) & delegation
 ├── media.module.ts            # NestJS Media Module
@@ -289,7 +287,7 @@ server/src/media/
 └── storage/
     ├── storage.interface.ts   # Standardized IStorageProvider interface & STORAGE_PROVIDER token
     ├── storage.module.ts      # Dynamic module mapping STORAGE_DRIVER env variable
-    ├── local.storage.ts       # Local Storage Provider (saves to server/uploads/)
+    ├── local.storage.ts       # Local Storage Provider (saves to apps/api/uploads/)
     ├── r2.storage.ts          # Cloudflare R2 Provider contract
     ├── s3.storage.ts          # AWS S3 Provider contract
     └── spaces.storage.ts      # DigitalOcean Spaces Provider contract
@@ -299,7 +297,7 @@ server/src/media/
 
 ## 9. Line-by-Line Code Walkthrough
 
-### 1. `server/src/media/storage/storage.interface.ts`
+### 1. `apps/api/src/media/storage/storage.interface.ts`
 ```ts
 export interface StorageFile {
   buffer: Buffer;
@@ -331,7 +329,7 @@ export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';
 
 ---
 
-### 2. `server/src/posts/posts.service.ts` (Feed Query Method)
+### 2. `apps/api/src/posts/posts.service.ts` (Feed Query Method)
 ```ts
   async findAllFeed(category?: string, feedType?: string, currentUserId?: string, search?: string) {
     let authorIdFilter: any = undefined;
@@ -419,14 +417,14 @@ export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';
 ## 11. Practical Learning Exercises
 
 ### Level 1: Beginner
-1. Locate the route handler for `GET /posts/top-categories` in `server/src/posts/posts.controller.ts`.
-2. Trace the service method `getTopCategories()` in `server/src/posts/posts.service.ts`.
+1. Locate the route handler for `GET /posts/top-categories` in `apps/api/src/posts/posts.controller.ts`.
+2. Trace the service method `getTopCategories()` in `apps/api/src/posts/posts.service.ts`.
 3. Locate where `api.getTopCategories()` is called in `app/components/SidebarCategories.tsx`.
 
 ### Level 2: Intermediate
-1. Add a new field `cameraLocation` to the `ExifData` model in `server/prisma/schema.prisma`.
-2. Run `npx prisma db push` in `server/` to update SQLite schema.
-3. Update `CreatePostDto` in `server/src/posts/dto/create-post.dto.ts` to validate `cameraLocation`.
+1. Add a new field `cameraLocation` to the `ExifData` model in `apps/api/prisma/schema.prisma`.
+2. Run `npx prisma db push` in `apps/api/` to update SQLite schema.
+3. Update `CreatePostDto` in `apps/api/src/posts/dto/create-post.dto.ts` to validate `cameraLocation`.
 
 ---
 

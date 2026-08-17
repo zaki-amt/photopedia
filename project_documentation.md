@@ -22,99 +22,102 @@
 
 ```
 photopedia/
-├── app/                              # Next.js App Router (Frontend)
-│   ├── (auth)/                       # Authentication Route Group
-│   │   ├── login/
-│   │   │   └── page.tsx              # Sign In Page with interactive Quick-Fill demo credentials
-│   │   └── register/
-│   │       └── page.tsx              # Sign Up Page with automatic session redirection
-│   ├── (dashboard)/                  # Dashboard & Public Content Layout Group
-│   │   ├── admin/                    # Platform Administrator Controls
-│   │   │   ├── layout.tsx            # Admin Panel Layout (AdminSidebarNav Guard)
-│   │   │   ├── page.tsx              # Dynamic Admin System Overview Dashboard
-│   │   │   ├── categories/
-│   │   │   │   └── page.tsx          # Category Manager (Add & View Categories)
-│   │   │   ├── posts/
-│   │   │   │   └── page.tsx          # Content Moderation Queue & Flag Review
-│   │   │   └── users/
-│   │   │       └── page.tsx          # User Directory (Block/Unblock, Role Assign, Soft-Delete)
-│   │   ├── category/                 # Category Archive Directory
-│   │   │   ├── page.tsx              # All Categories Overview Page
-│   │   │   └── [slug]/
-│   │   │       └── page.tsx          # Dynamic Category Archive (e.g. /category/landscape)
-│   │   ├── creators/                 # Public Creator Network
-│   │   │   ├── page.tsx              # Public Creators Directory Page (Loads all 21 creators)
-│   │   │   └── [username]/
-│   │   │       └── page.tsx          # Public Creator Profile Archive Page (Clickable Metrics Modal)
-│   │   ├── feed/                     # Feed & Photograph Views
-│   │   │   ├── page.tsx              # Main Photograph Feed Page (For You & Following Tabs, Search Filter)
-│   │   │   ├── components/
-│   │   │   │   ├── FeedTabs.tsx      # All / Following Tab Switcher Component
-│   │   │   │   └── FollowingEmptyState.tsx # Empty State View when 0 follows
-│   │   │   ├── [id]/
-│   │   │   │   ├── page.tsx          # Single Post Detail Page (EXIF, Comments, Red LikeButton, Lightbox Modal, Flag/Delete)
-│   │   │   │   └── edit/
-│   │   │       └── page.tsx          # Author Edit Photograph Form (Title, Caption, Category, EXIF)
-│   │   │   └── new/
-│   │   │       └── page.tsx          # Publish Form with Drag & Drop Local Media Uploader
-│   │   ├── profile/                  # User Profile Management
-│   │   │   ├── page.tsx              # User Personal Profile Page
-│   │   │   └── edit/
-│   │   │       └── page.tsx          # Edit Profile Form with Local Avatar Photo Uploader
-│   │   ├── support/                  # Support Desk & Appeal Form
-│   │   │   └── page.tsx              # Public Support & Contact Desk Page
-│   │   └── layout.tsx                # SaaS Root Dashboard Layout (AuthProvider Wrapper)
-│   ├── components/                   # Atomic Shared Components
-│   │   ├── layout/                   # Modular Layout Components
-│   │   │   ├── HeaderNav.tsx         # Top Navigation Header with Universal Search & User Dropdown
-│   │   │   ├── SidebarNav.tsx        # Main App Sidebar Navigation with Active Route Highlights
-│   │   │   ├── AdminSidebarNav.tsx   # SaaS Admin Panel Side Navigation
-│   │   │   └── Footer.tsx            # Clean SaaS Footer Component
-│   │   ├── PostCard.tsx              # Feed Photograph Card (Author Edit/Delete, Flag, Like)
-│   │   ├── PhotoLightboxModal.tsx    # Full-Screen Photo Lightbox Modal Viewport
-│   │   ├── PostCardSkeleton.tsx      # Animated Shimmer Skeleton Loading Component
-│   │   ├── SidebarCategories.tsx     # Top Categories Widget with Shimmer Loaders & VIEW ALL Link
-│   │   ├── SidebarCreators.tsx       # Suggested Creators Widget Component (Strict limit=5 & Shimmer)
-│   │   ├── UserAvatar.tsx            # Reusable Avatar Component with Universal Fallback
-│   │   ├── UserNameLink.tsx          # Reusable Author Permalink Component (/creators/[username])
-│   │   ├── LikeButton.tsx            # Red Filled Heart Like Button Component
-│   │   ├── FollowButton.tsx          # Isolated Follow/Following Toggle Button Component
-│   │   ├── UserListItem.tsx          # User List Item Row Component
-│   │   └── FollowersFollowingModal.tsx # Interactive Followers/Following Archive Modal
-│   ├── hooks/                        # Custom Business Logic Hooks
-│   │   ├── useAuth.tsx               # Centralized SaaS Authentication & User Session Context Hook
-│   │   ├── useLike.ts                # Like/Unlike State, Count, and API Integration Hook
-│   │   ├── useFollow.ts              # Follow/Unfollow State, Async Sync, and API Hook
-│   │   ├── useFollowList.ts          # Fetch Followers & Following Lists Hook
-│   │   └── useFeed.ts                # Feed Tab Switcher, Search Query & Data Fetching Hook
-│   └── lib/
-│       └── api.ts                    # Centralized Axios API Client with uploadMedia method
-├── server/                           # NestJS Backend API Server
-│   ├── prisma/
-│   │   ├── schema.prisma             # Optimized Prisma Database Schema
-│   │   ├── dev.db                    # SQLite Database File
-│   │   └── seed.ts                   # Full Seeding Script (20 Creators + 29 Verified Photos)
-│   ├── uploads/                      # Local Media Asset Storage Directory
-│   └── src/
-│       ├── admin/                    # Admin Moderation Module (Overview, Users, Categories, Flagged)
-│       ├── auth/                     # JWT Authentication & Passport Strategy Module (Blocked User Guard)
-│       ├── media/                    # Media Module & Storage Interface Contracts
-│       │   ├── media.controller.ts   # POST /media/upload, GET /media/url/*, DELETE /media/:key
-│       │   ├── media.service.ts      # Media validation (MIME, 15MB limit) & storage delegation
-│       │   ├── media.module.ts       # NestJS Media Module
-│       │   ├── dto/
-│       │   │   ├── upload-media.dto.ts
-│       │   │   └── complete-upload.dto.ts
-│       │   └── storage/
-│       │       ├── storage.interface.ts # IStorageProvider interface contract
-│       │       ├── storage.module.ts    # Dynamic STORAGE_PROVIDER token binding
-│       │       ├── local.storage.ts     # Local Storage Provider (saves to /uploads)
-│       │       ├── r2.storage.ts        # Cloudflare R2 Provider contract
-│       │       ├── s3.storage.ts        # AWS S3 Provider contract
-│       │       └── spaces.storage.ts    # DigitalOcean Spaces Provider contract
-│       ├── posts/                    # Posts Module (Feed filtering, Real-Time Search, Likes, Comments, EXIF, Edit, Delete, Flag)
-│       ├── users/                    # Users Module (Follow/Unfollow, Followers, Following, Suggested)
-│       └── prisma/                   # Prisma ORM Global Module
+├── apps/
+│   ├── web/                          # Next.js App Router App (Frontend)
+│   │   ├── app/                      # Next.js App Views
+│   │   │   ├── (auth)/               # Authentication Route Group
+│   │   │   │   ├── login/
+│   │   │   │   │   └── page.tsx      # Sign In Page with interactive Quick-Fill demo credentials
+│   │   │   │   └── register/
+│   │   │   │       └── page.tsx      # Sign Up Page with automatic session redirection
+│   │   │   ├── (dashboard)/          # Dashboard & Public Content Layout Group
+│   │   │   │   ├── admin/            # Platform Administrator Controls
+│   │   │   │   │   ├── layout.tsx    # Admin Panel Layout (AdminSidebarNav Guard)
+│   │   │   │   │   ├── page.tsx      # Dynamic Admin System Overview Dashboard
+│   │   │   │   │   ├── categories/
+│   │   │   │   │   │   └── page.tsx  # Category Manager (Add & View Categories)
+│   │   │   │   │   ├── posts/
+│   │   │   │   │   │   └── page.tsx  # Content Moderation Queue & Flag Review
+│   │   │   │   │   └── users/
+│   │   │   │   │       └── page.tsx  # User Directory (Block/Unblock, Role Assign, Soft-Delete)
+│   │   │   │   ├── category/         # Category Archive Directory
+│   │   │   │   │   ├── page.tsx      # All Categories Overview Page
+│   │   │   │   │   └── [slug]/
+│   │   │   │   │       └── page.tsx  # Dynamic Category Archive (e.g. /category/landscape)
+│   │   │   │   ├── creators/         # Public Creator Network
+│   │   │   │   │   ├── page.tsx      # Public Creators Directory Page (Loads all 21 creators)
+│   │   │   │   │   └── [username]/
+│   │   │   │   │       └── page.tsx  # Public Creator Profile Archive Page (Clickable Metrics Modal)
+│   │   │   │   ├── feed/             # Feed & Photograph Views
+│   │   │   │   │   ├── page.tsx      # Main Photograph Feed Page (For You & Following Tabs, Search Filter)
+│   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── FeedTabs.tsx # All / Following Tab Switcher Component
+│   │   │   │   │   │   └── FollowingEmptyState.tsx # Empty State View when 0 follows
+│   │   │   │   │   ├── [id]/
+│   │   │   │   │   │   ├── page.tsx  # Single Post Detail View (EXIF, Comments, Red LikeButton, Lightbox Modal)
+│   │   │   │   │   │   └── edit/
+│   │   │   │   │   │       └── page.tsx # Author Edit Photograph Form
+│   │   │   │   │   └── new/
+│   │   │   │   │       └── page.tsx  # Publish Form with Drag & Drop Local Media Uploader
+│   │   │   │   ├── profile/          # User Profile Management
+│   │   │   │   │   ├── page.tsx      # User Personal Profile Page
+│   │   │   │   │   └── edit/
+│   │   │   │   │       └── page.tsx  # Edit Profile Form with Local Avatar Photo Uploader
+│   │   │   │   ├── support/          # Support Desk & Appeal Form
+│   │   │   │   │   └── page.tsx      # Public Support & Contact Desk Page
+│   │   │   │   └── layout.tsx        # SaaS Root Dashboard Layout (AuthProvider Wrapper)
+│   │   │   ├── components/           # Atomic Shared Components
+│   │   │   │   ├── layout/           # Modular Layout Components (HeaderNav, SidebarNav, AdminSidebarNav, Footer)
+│   │   │   │   ├── PostCard.tsx      # Feed Photograph Card
+│   │   │   │   ├── PhotoLightboxModal.tsx # Full-Screen Photo Lightbox Modal Viewport
+│   │   │   │   ├── PostCardSkeleton.tsx # Animated Shimmer Skeleton Loading Component
+│   │   │   │   ├── SidebarCategories.tsx # Top Categories Widget with Shimmer Loaders
+│   │   │   │   ├── SidebarCreators.tsx # Suggested Creators Widget Component (Strict limit=5)
+│   │   │   │   ├── UserAvatar.tsx    # Reusable Avatar Component with Universal Fallback
+│   │   │   │   ├── UserNameLink.tsx  # Reusable Author Permalink Component (/creators/[username])
+│   │   │   │   ├── LikeButton.tsx    # Red Filled Heart Like Button Component
+│   │   │   │   ├── FollowButton.tsx  # Isolated Follow/Following Toggle Button Component
+│   │   │   │   ├── UserListItem.tsx  # User List Item Row Component
+│   │   │   │   └── FollowersFollowingModal.tsx # Interactive Followers/Following Archive Modal
+│   │   │   ├── hooks/                # Custom Business Logic Hooks (useAuth, useLike, useFollow, useFollowList, useFeed)
+│   │   │   └── lib/
+│   │   │       └── api.ts            # Centralized API Client with uploadMedia method
+│   │   ├── postcss.config.mjs        # PostCSS Config
+│   │   ├── tsconfig.json             # TS Config
+│   │   ├── next.config.ts            # Next.js Config
+│   │   ├── middleware.ts             # Edge Route Protection Middleware
+│   │   └── package.json              # Web App Dependencies
+│   │
+│   └── api/                          # NestJS Backend API App
+│       ├── prisma/
+│       │   ├── schema.prisma         # Optimized Prisma Database Schema
+│       │   ├── dev.db                # SQLite Database File
+│       │   └── seed.ts               # Full Seeding Script (20 Creators + 29 Verified Photos)
+│       ├── uploads/                  # Local Media Asset Storage Directory
+│       ├── src/
+│       │   ├── admin/                # Admin Moderation Module (Overview, Users, Categories, Flagged)
+│       │   ├── auth/                 # JWT Authentication & Passport Strategy Module
+│       │   ├── media/                # Media Module & Storage Interface Contracts
+│       │   │   ├── media.controller.ts # POST /media/upload, GET /media/url/*, DELETE /media/:key
+│       │   │   ├── media.service.ts  # Media validation (MIME, 15MB limit) & storage delegation
+│       │   │   ├── media.module.ts   # NestJS Media Module
+│       │   │   ├── dto/
+│       │   │   └── storage/
+│       │   │       ├── storage.interface.ts # IStorageProvider interface contract
+│       │   │       ├── storage.module.ts # Dynamic STORAGE_PROVIDER token binding
+│       │   │       ├── local.storage.ts # Local Storage Provider (saves to /uploads)
+│       │   │       ├── r2.storage.ts    # Cloudflare R2 Provider contract
+│       │   │       ├── s3.storage.ts    # AWS S3 Provider contract
+│       │   │       └── spaces.storage.ts # DigitalOcean Spaces Provider contract
+│       │   ├── posts/                # Posts Module
+│       │   ├── users/                # Users Module
+│       │   └── prisma/               # Prisma ORM Global Module
+│       │   └── main.ts               # API Bootstrap & Global Interceptors
+│       │   └── tsconfig.json         # API TS Config
+│       │   └── package.json          # API Dependencies
+├── packages/                         # Shared Packages (Later, if needed)
+├── pnpm-workspace.yaml               # Monorepo Workspace Configuration
+├── package.json                      # Workspace Scripts Runner
 ├── PROJECT_GUIDE.md                  # Comprehensive LAMP/WordPress to Modern Stack Learning Guide
 ├── PROJECT_NOTES.txt                 # Detailed 1,000+ Line Technical Architecture Reference Notes
 ├── project_user_stories_audit.md     # Audit Checklist (30 User Stories Passed)

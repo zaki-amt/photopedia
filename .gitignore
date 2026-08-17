@@ -1,25 +1,23 @@
 # dependencies
-/node_modules
-/server/node_modules
+**/node_modules
 /.pnpm
 /.yarn
 
 # Next.js build output
-/.next/
-/out/
+/apps/web/.next/
+/apps/web/out/
 
 # NestJS build output
-/server/dist/
+/apps/api/dist/
 
 # Environment files
 .env
 .env*.local
-server/.env
+apps/api/.env
 
 # TypeScript / Prisma cache
 *.tsbuildinfo
 next-env.d.ts
-/server/src/generated
 
 # OS & IDE junk
 .DS_Store
@@ -28,5 +26,5 @@ next-env.d.ts
 .idea/
 
 # Local Uploads
-/server/uploads/
+/apps/api/uploads/
 
